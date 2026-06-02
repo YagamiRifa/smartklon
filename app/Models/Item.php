@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Item extends Model
 {
-    protected $fillable = ['kode_barang', 'nama_barang', 'deskripsi', 'satuan'];
+    protected $fillable = ['kode_barang', 'barcode', 'nama_barang', 'deskripsi', 'satuan'];
 
     public function tags(): HasMany
     {
@@ -37,5 +37,9 @@ class Item extends Model
     public function getTotalTagsAttribute(): int
     {
         return $this->tags()->count();
+    }
+    public function batchExpiries(): HasMany
+    {
+        return $this->hasMany(BatchExpiry::class)->orderBy('expiry_date', 'asc');
     }
 }
