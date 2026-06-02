@@ -35,5 +35,5 @@ Route::middleware('auth')->group(function () {
     Route::get('/expiry', [ExpiryController::class, 'index'])->name('expiry.index');
     Route::post('/expiry', [ExpiryController::class, 'store'])->name('expiry.store');
     Route::get('/api/items/{id}/batches', [ExpiryController::class, 'getBatches']);
-    Route::delete('/api/batches/{id}', [App\Http\Controllers\ExpiryController::class, 'destroyBatch']);
+    Route::delete('/api/batches/{id}', [ExpiryController::class, 'destroyBatch']);
 });
