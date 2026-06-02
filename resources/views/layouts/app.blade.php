@@ -131,6 +131,67 @@
                     <span class="indicator-text">Real-time</span>
                 </div>
                 <div class="topbar-time" id="topbar-time"></div>
+                {{-- ===== LONCENG NOTIFIKASI ===== --}}
+                <div class="topbar-notification" id="notification-wrapper">
+                    <button class="notification-btn" id="notification-btn" aria-label="Notifikasi">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            {{-- Hitung total gabungan notifikasi --}}
+                        @php
+                            $totalNotifikasi = ($globalExpiredCount ?? 0) + ($globalWarningCount ?? 0);
+                        @endphp
+
+                        {{-- Tampilkan lencana angka jika total notifikasi lebih dari 0 --}}
+                        @if($totalNotifikasi > 0)
+                            {{-- Menggunakan warna merah jika ada produk expired, selain itu warna amber --}}
+                            <span class="notification-badge {{ ($globalExpiredCount ?? 0) > 0 ? 'notification-badge--red' : 'notification-badge--amber' }}">
+                                {{ $totalNotifikasi }}
+                            </span>
+                        @endif
+                    </button>
+
+                    {{-- Isi Dropdown Notifikasi --}}
+                    <div class="notification-dropdown" id="notification-dropdown">
+                        <div class="notification-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3 class="notification-title">Notifikasi Sistem</h3>
+
+                            {{-- Tombol Bersihkan hanya muncul jika ada notifikasi aktif --}}
+                            @if((($globalExpiredCount ?? 0) + ($globalWarningCount ?? 0)) > 0)
+                                <button onclick="clearNotifications()" style="background: none; border: none; color: var(--primary-600); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: background 0.15s;">Bersihkan</button>
+                            @endif
+                        </div>
+                        <div class="notification-body">
+                            @if(($globalExpiredCount ?? 0) > 0)
+                                <a href="{{ route('expiry.index') }}" class="notification-item notification-item--red">
+                                    <div class="notification-icon">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+                                    </div>
+                                    <div class="notification-text">
+                                        <strong>{{ $globalExpiredCount }} Batch Telah Kedaluwarsa!</strong><br>
+                                        Segera periksa dan tarik produk dari rak.
+                                    </div>
+                                </a>
+                            @endif
+
+                            @if(($globalWarningCount ?? 0) > 0)
+                                <a href="{{ route('expiry.index') }}" class="notification-item notification-item--amber">
+                                    <div class="notification-icon">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2.5"/></svg>
+                                    </div>
+                                    <div class="notification-text">
+                                        <strong>{{ $globalWarningCount }} Batch Mendekati Kedaluwarsa</strong><br>
+                                        Memasuki periode H-14.
+                                    </div>
+                                </a>
+                            @endif
+
+                            @if(($globalExpiredCount ?? 0) == 0 && ($globalWarningCount ?? 0) == 0)
+                                <div class="notification-empty">
+                                    Belum ada notifikasi baru.
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -187,7 +248,68 @@
             setTimeout(() => alert.remove(), 300);
         }, 4000);
     });
+
+    // Notification Dropdown Toggle
+    const notifBtn = document.getElementById('notification-btn');
+    const notifDropdown = document.getElementById('notification-dropdown');
+
+    if(notifBtn && notifDropdown) {
+        notifBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Mencegah klik bocor ke dokumen
+            notifDropdown.classList.toggle('show');
+        });
+
+        // Menutup dropdown jika user mengklik area luar dropdown
+        document.addEventListener('click', (e) => {
+            if(!notifDropdown.contains(e.target)) {
+                notifDropdown.classList.remove('show');
+            }
+        });
+    }
+async function clearNotifications() {
+        try {
+            const response = await fetch('{{ route("notifications.clear") }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                // Muat ulang halaman agar angka di lencana lonceng langsung ter-update
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Gagal membersihkan notifikasi:', error);
+        }
+    }
 </script>
+
+<style>
+/* ── Lonceng Notifikasi ── */
+.topbar-notification { position: relative; display: flex; align-items: center; }
+.notification-btn { background: none; border: none; color: var(--grey-500); cursor: pointer; padding: 6px; position: relative; border-radius: 50%; transition: all 0.2s; display: flex; align-items: center; justify-content: center;}
+.notification-btn:hover { background: var(--grey-100); color: var(--grey-800); }
+.notification-badge { position: absolute; top: 0; right: 0; border-radius: 50px; font-size: 9px; font-weight: 700; color: white; padding: 2px 5px; line-height: 1; border: 2px solid white; }
+.notification-badge--red { background: #DC2626; }
+.notification-badge--amber { background: #D97706; }
+
+/* ── Dropdown Notifikasi ── */
+.notification-dropdown { position: absolute; top: calc(100% + 10px); right: -10px; width: 320px; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); border: 1px solid var(--grey-200); opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.2s; z-index: 1000; }
+.notification-dropdown.show { opacity: 1; visibility: visible; transform: translateY(0); }
+.notification-header { padding: 14px 16px; border-bottom: 1px solid var(--grey-100); }
+.notification-title { font-size: 13px; font-weight: 700; color: var(--grey-800); margin: 0; }
+.notification-body { max-height: 300px; overflow-y: auto; }
+.notification-item { display: flex; gap: 12px; padding: 14px 16px; text-decoration: none; border-bottom: 1px solid var(--grey-50); transition: background 0.2s; }
+.notification-item:hover { background: var(--grey-50); }
+.notification-item--red .notification-icon { color: #DC2626; background: #FEE2E2; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.notification-item--amber .notification-icon { color: #D97706; background: #FEF3C7; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.notification-text { font-size: 12px; color: var(--grey-500); line-height: 1.4; }
+.notification-text strong { color: var(--grey-800); font-size: 13px; }
+.notification-empty { padding: 24px 16px; text-align: center; font-size: 12px; color: var(--grey-400); }
+</style>
 @stack('scripts')
 </body>
 </html>

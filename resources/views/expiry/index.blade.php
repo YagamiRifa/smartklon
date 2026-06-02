@@ -74,16 +74,29 @@
         <div class="detail-modal-body">
             <form method="POST" action="{{ route('expiry.store') }}" id="form-add-batch">
                 @csrf
-                <div class="form-group mb-3">
-                    <label class="form-label" for="modal_item_id">PILIH PRODUK TARGET</label>
-                    <select name="item_id" id="modal_item_id" class="form-control filter-select" style="width:100%; height:38px;" required>
-                        <option value="">-- Pilih Produk --</option>
+                <div class="form-group mb-3" style="position: relative;">
+                    <label class="form-label" for="search_product">PILIH PRODUK TARGET</label>
+
+                    {{-- Input Teks yang Menjadi Pencarian Sekaligus Penampil Hasil --}}
+                    <input type="hidden" name="item_id" id="modal_item_id" required>
+                    <input type="text" id="search_product" class="form-input" placeholder="Ketik kode, nama, atau barcode..." style="width:100%; height:38px;" onkeyup="filterCustomDropdown()" onclick="openCustomDropdown()" autocomplete="off" required>
+
+                    {{-- Daftar Opsi Custom (Melayang di bawah input) --}}
+                    <div id="custom_options_container" style="display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid var(--grey-200); border-radius:8px; margin-top:4px; max-height:200px; overflow-y:auto; z-index:9999; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
                         @foreach ($items ?? [] as $item)
-                            <option value="{{ $item->id }}">
-                                {{ $item->kode_barang }} - {{ $item->nama_barang }}
-                            </option>
+                            <div class="custom-option"
+                                 data-value="{{ $item->id }}"
+                                 data-label="{{ $item->kode_barang }} - {{ $item->nama_barang }}"
+                                 data-search="{{ strtolower($item->kode_barang . ' ' . $item->nama_barang . ' ' . ($item->barcode ?? '')) }}"
+                                 onclick="selectCustomOption(this)">
+                                {{ $item->kode_barang }} - <span style="font-weight: 500;">{{ $item->nama_barang }}</span>
+                            </div>
                         @endforeach
-                    </select>
+
+                        <div id="custom_option_empty" style="display:none; padding:10px 12px; font-size:13px; color:var(--grey-400); text-align:center;">
+                            Produk tidak ditemukan
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group mb-3">
                     <label class="form-label" for="modal_expiry_date">TANGGAL KEDALUWARSA</label>
@@ -118,12 +131,6 @@
             </div>
         </div>
         <div class="card-body">
-            @if (session('success'))
-                <div style="color: #16a34a; background: #dcfce7; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 13px;">
-                    {{ session('success') }}
-                </div>
-            @endif
-
             {{-- Tombol pemicu Modal Tambah Batch --}}
             <button class="btn btn--primary" style="width:100%; justify-content:center; padding:10px 0; font-size:14px;" onclick="openAddBatchModal()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="margin-right:6px;"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -210,14 +217,14 @@
 <div id="expiry-detail-modal-overlay" class="detail-modal-overlay" style="display:none;" onclick="closeExpiryDetailModal(event)">
     <div class="detail-modal" style="width:600px" role="dialog" aria-modal="true">
         <div class="detail-modal-header">
-            <div class="detail-modal-icon">
+            <div class="detail-modal-icon" id="detail-modal-icon--edit">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
             </div>
             <div style="flex:1;min-width:0;">
                 <h3 class="detail-modal-title" id="modal-nama-produk">—</h3>
                 <div style="display:flex;align-items:center;gap:8px;margin-top:3px;">
                     <span class="badge badge--code" style="font-size:11px;" id="modal-kode-produk">—</span>
-                    <span class="detail-modal-satuan-badge" id="modal-barcode-produk">—</span>
+                    <span class="detail-modal-barcode-badge" id="modal-barcode-produk">—</span>
                     <span class="detail-modal-satuan-badge" id="modal-satuan-produk">—</span>
                 </div>
             </div>
@@ -266,6 +273,60 @@
             <button class="btn btn--primary" id="modal-btn-add">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                 Tambah Batch
+            </button>
+        </div>
+    </div>
+</div>
+{{-- ================================================================
+     MODAL EDIT KATALOG PRODUK
+     ================================================================ --}}
+<div id="edit-product-modal-overlay" class="detail-modal-overlay" style="display:none;" onclick="closeEditProductModal(event)">
+    <div class="detail-modal" style="width:480px" role="dialog" aria-modal="true">
+        <div class="detail-modal-header">
+            <div class="detail-modal-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div style="flex:1;min-width:0;">
+                <h3 class="detail-modal-title">Edit Katalog Produk</h3>
+            </div>
+            <button class="batch-modal-close" onclick="closeEditProductModal()" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg>
+            </button>
+        </div>
+
+        <div class="detail-modal-body">
+            <form method="POST" action="" id="form-edit-product">
+                @csrf
+                @method('PUT') {{-- Wajib untuk update data di Laravel --}}
+
+                <div class="form-grid form-grid--2">
+                    <div class="form-group">
+                        <label class="form-label" for="edit_kode_barang">KODE BARANG</label>
+                        <input type="text" id="edit_kode_barang" name="kode_barang" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit_barcode">BARCODE</label>
+                        <input type="text" id="edit_barcode" name="barcode" class="form-input">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label class="form-label" for="edit_nama_barang">NAMA BARANG</label>
+                        <input type="text" id="edit_nama_barang" name="nama_barang" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit_satuan">SATUAN</label>
+                        <input type="text" id="edit_satuan" name="satuan" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit_deskripsi">DESKRIPSI</label>
+                        <input type="text" id="edit_deskripsi" name="deskripsi" class="form-input">
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="detail-modal-footer">
+            <button class="btn btn--secondary" onclick="closeEditProductModal()" type="button">Batal</button>
+            <button type="submit" form="form-edit-product" class="btn btn--primary">
+                Simpan Perubahan
             </button>
         </div>
     </div>
@@ -323,9 +384,11 @@
                 @forelse($items ?? [] as $item)
                 <tr class="stock-row" id="row-{{ $item->id }}"
                     data-item-id="{{ $item->id }}"
-                    data-name="{{ strtolower($item->nama_barang) }}"
-                    data-kode="{{ strtolower($item->kode_barang) }}"
-                    data-satuan="{{ e($item->satuan ?? 'pcs') }}"  {{-- <--- TAMBAHKAN BARIS INI --}}
+                    data-name="{{ $item->nama_barang }}"
+                    data-kode="{{ $item->kode_barang }}"
+                    data-barcode="{{ $item->barcode }}"
+                    data-satuan="{{ $item->satuan ?? 'pcs' }}"
+                    data-deskripsi="{{ $item->deskripsi }}"
                     data-total="{{ $item->batchExpiries->count() ?? 0 }}"
                     data-safe="{{ $item->safe_count }}"
                     data-warning="{{ $item->warning_count }}"
@@ -354,7 +417,12 @@
                         <button class="btn-row-icon btn-row-icon--detail" onclick="openExpiryDetailModal({{ $item->id }})" title="Lihat detail batch">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
                         </button>
+                        {{-- Tombol Edit Produk (Pensil) --}}
+                        <button class="btn-row-icon btn-row-icon--edit" onclick="openEditProductModal({{ $item->id }})" title="Edit Katalog Produk">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
                     </td>
+
                 </tr>
                 <tr class="tag-list-row" id="batches-{{ $item->id }}" style="display:none; background-color: #f8fafc;">
                     <td colspan="9" class="tag-list-cell" style="padding: 16px;">
@@ -652,19 +720,32 @@ function closeExpiryDetailModal(e) {
 }
 
 // ==============================================================
-// MODAL TAMBAH BATCH MANUAL
+// MODAL TAMBAH BATCH MANUAL & FILTER PENCARIAN (VERSI 1 KOLOM)
 // ==============================================================
+
 function openAddBatchModal(itemId = null) {
     const modal = document.getElementById('add-batch-modal-overlay');
     if (!modal) return;
 
-    // Jika itemId diberikan, otomatis pilih produk tersebut di dropdown
-    const select = document.getElementById('modal_item_id');
-    if (select) {
-        select.value = itemId || '';
+    const hiddenInput = document.getElementById('modal_item_id');
+    const searchInput = document.getElementById('search_product');
+
+    // 1. Set/Reset Pilihan Produk
+    if (itemId) {
+        hiddenInput.value = itemId;
+        // Cari opsi yang sesuai untuk menampilkan nama produk di layar
+        const selectedOpt = document.querySelector(`.custom-option[data-value="${itemId}"]`);
+        if (selectedOpt) searchInput.value = selectedOpt.getAttribute('data-label');
+    } else {
+        hiddenInput.value = '';
+        searchInput.value = '';
     }
 
-    // Reset tanggal agar kosong saat form dibuka lagi
+    // Pastikan dropdown tertutup saat modal baru dibuka
+    const dropdown = document.getElementById('custom_options_container');
+    if (dropdown) dropdown.style.display = 'none';
+
+    // 2. Reset Tanggal Kedaluwarsa
     const dateInput = document.getElementById('modal_expiry_date');
     if (dateInput && !itemId) dateInput.value = '';
 
@@ -672,11 +753,93 @@ function openAddBatchModal(itemId = null) {
     setTimeout(() => modal.classList.add('detail-modal-overlay--visible'), 10);
 }
 
+// Buka dropdown saat input diklik
+function openCustomDropdown() {
+    document.getElementById('custom_options_container').style.display = 'block';
+    filterCustomDropdown(false); // false = jangan hapus item_id saat baru diklik
+}
+
+// Filter saat pengguna mengetik
+function filterCustomDropdown(isTyping = true) {
+    const input = document.getElementById("search_product").value.toLowerCase();
+    const options = document.querySelectorAll('.custom-option');
+    let hasMatch = false;
+
+    // Jika user mengetik, hapus item_id lama karena pilihannya berubah
+    if (isTyping) {
+        document.getElementById('modal_item_id').value = '';
+    }
+
+    options.forEach(opt => {
+        const searchData = opt.getAttribute('data-search') || '';
+        if (searchData.includes(input)) {
+            opt.style.display = 'block';
+            hasMatch = true;
+        } else {
+            opt.style.display = 'none';
+        }
+    });
+
+    document.getElementById('custom_option_empty').style.display = hasMatch ? 'none' : 'block';
+    document.getElementById('custom_options_container').style.display = 'block';
+}
+
+// Aksi saat opsi produk diklik
+function selectCustomOption(el) {
+    document.getElementById('modal_item_id').value = el.getAttribute('data-value');
+    document.getElementById('search_product').value = el.getAttribute('data-label');
+    document.getElementById('custom_options_container').style.display = 'none';
+}
+
+// Menutup dropdown jika klik sembarang tempat di luar kotak
+document.addEventListener('click', function(e) {
+    const container = document.getElementById('custom_options_container');
+    const input = document.getElementById('search_product');
+
+    if (container && input && !container.contains(e.target) && e.target !== input) {
+        container.style.display = 'none';
+        // Mencegah input 'menggantung': bersihkan teks jika user tidak jadi memilih produk
+        if (document.getElementById('modal_item_id').value === '') {
+             input.value = '';
+        }
+    }
+});
+
 function closeAddBatchModal(e) {
-    // Abaikan jika yang di-klik adalah isi kotak modal
     if (e && e.target !== document.getElementById('add-batch-modal-overlay')) return;
 
     const modal = document.getElementById('add-batch-modal-overlay');
+    modal.classList.remove('detail-modal-overlay--visible');
+    setTimeout(() => { modal.style.display = 'none'; }, 250);
+}
+
+// // ==============================================================
+// // MODAL EDIT KATALOG PRODUK
+// // ==============================================================
+function openEditProductModal(itemId) {
+    const row = document.getElementById('row-' + itemId);
+    if (!row) return;
+
+    // Isi form dengan data dari atribut baris tabel
+    document.getElementById('edit_kode_barang').value = row.getAttribute('data-kode');
+    document.getElementById('edit_barcode').value = row.getAttribute('data-barcode');
+    document.getElementById('edit_nama_barang').value = row.getAttribute('data-name');
+    document.getElementById('edit_satuan').value = row.getAttribute('data-satuan');
+    document.getElementById('edit_deskripsi').value = row.getAttribute('data-deskripsi') || '';
+
+    // Ubah action form secara dinamis (mengarah ke route update produkmu)
+    const form = document.getElementById('form-edit-product');
+    form.action = `{{ url('/stock/items') }}/${itemId}`;
+
+    // Tampilkan modal
+    const modal = document.getElementById('edit-product-modal-overlay');
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('detail-modal-overlay--visible'), 10);
+}
+
+function closeEditProductModal(e) {
+    if (e && e.target !== document.getElementById('edit-product-modal-overlay')) return;
+    const modal = document.getElementById('edit-product-modal-overlay');
     modal.classList.remove('detail-modal-overlay--visible');
     setTimeout(() => { modal.style.display = 'none'; }, 250);
 }
@@ -686,14 +849,6 @@ function closeAddBatchModal(e) {
 /* ── Warna Status Expiry ── */
 .count-pill--amber { background:#FFFBEB; color:#F59E0B; }
 .badge--amber { background:#FFFBEB; color:#F59E0B; border:1px solid #FDE68A; }
-/* .stat-card-icon--amber { background:#FFFBEB; color:#F59E0B; } */
-/* .count-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--grey-100);
-    color: var(--grey-700);
-} */
 
 /* ── Layout 2 Kolom ── */
 .stock-control-row {display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px;}
@@ -711,6 +866,8 @@ function closeAddBatchModal(e) {
 .btn-row-icon { width:28px;height:28px;border-radius:7px;border:1px solid var(--grey-200);background:white;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,border-color .15s; }
 .btn-row-icon--detail { color:var(--primary-500); }
 .btn-row-icon--detail:hover { background:var(--primary-50);border-color:var(--primary-300); }
+.btn-row-icon--edit { color:var(--amber-500); }
+.btn-row-icon--edit:hover { background:var(--amber-50);border-color:var(--amber-300); }
 
 /* ── Detail Modal Expiry ── */
 .detail-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9990;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .25s; }
@@ -719,7 +876,9 @@ function closeAddBatchModal(e) {
 .detail-modal-overlay--visible .detail-modal { transform:scale(1) translateY(0); }
 .detail-modal-header { display:flex;align-items:flex-start;gap:12px;padding:20px 20px 16px;border-bottom:1px solid var(--grey-100); position:relative; }
 .detail-modal-icon { width:38px;height:38px;background:var(--primary-50);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--primary-600);flex-shrink:0; }
+.detail-modal-icon--edit {  color:var(--amber-500); background:var(--amber-50);border-color:var(--amber-300);}
 .detail-modal-title { font-size:16px;font-weight:700;color:var(--grey-800);margin:0; }
+.detail-modal-barcode-badge { font-size:11px;color:var(--grey-500);background:var(--grey-100);border-radius:10px;padding:1px 8px; }
 .detail-modal-satuan-badge { font-size:11px;color:var(--grey-500);background:var(--grey-100);border-radius:10px;padding:1px 8px; }
 .batch-modal-close { position:absolute;right:16px;top:16px;border:none;background:none;cursor:pointer;color:var(--grey-400);padding:4px; }
 .detail-modal-stats { display:flex;align-items:stretch;border-bottom:1px solid var(--grey-100); }
@@ -837,5 +996,10 @@ function closeAddBatchModal(e) {
 .stock-table-filters { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
 .filter-select { height:34px;padding:0 10px;border:1px solid var(--grey-200);border-radius:8px;font-size:12px;background:white;color:var(--grey-700);cursor:pointer;outline:none; }
 .filter-select:focus { border-color:var(--primary-400); }
+
+/* ── Custom Searchable Dropdown ── */
+.custom-option { padding: 10px 12px; cursor: pointer; font-size: 13px; color: var(--grey-700); border-bottom: 1px solid var(--grey-50); transition: background 0.15s; }
+.custom-option:hover { background: var(--primary-50); color: var(--primary-600); }
+.custom-option:last-child { border-bottom: none; }
 </style>
 @endpush

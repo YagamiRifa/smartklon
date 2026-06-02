@@ -36,4 +36,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/expiry', [ExpiryController::class, 'store'])->name('expiry.store');
     Route::get('/api/items/{id}/batches', [ExpiryController::class, 'getBatches']);
     Route::delete('/api/batches/{id}', [ExpiryController::class, 'destroyBatch']);
+
+    // Notification Management
+    Route::post('/notifications/clear', function () {
+        // Menyimpan timestamp pemicu tombol bersih-bersih ke dalam session user
+        session(['notifications_cleared_at' => now()]);
+        return response()->json(['success' => true]);
+    })->name('notifications.clear');
 });
