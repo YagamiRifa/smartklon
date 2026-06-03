@@ -96,8 +96,69 @@
         </div>
     </div>
 
+    {{-- ===== TABEL BATCH KRITIS (EXPIRED / WARNING) ===== --}}
+    <div class="dashboard-card" id="card-expiry">
+        <div class="card-header">
+            <div class="card-header-left">
+                <h2 class="card-title">Peringatan Batch Kedaluwarsa</h2>
+            </div>
+            <a href="{{ route('expiry.index') }}" class="card-link">Lihat Semua →</a>
+
+        </div>
+
+        <div style="overflow-x: auto; padding: 0 4px;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                <thead>
+                    <tr style="background: var(--grey-50); border-bottom: 1px solid var(--grey-200); color: var(--grey-500); font-weight: 600; text-transform: uppercase; font-size: 11px;">
+                        <th style="padding: 12px 16px;">Kode Barang</th>
+                        <th style="padding: 12px 16px;">Nama Barang</th>
+                        <th style="padding: 12px 16px;">Batch Code</th>
+                        <th style="padding: 12px 16px;">Tanggal Kedaluwarsa</th>
+                        <th style="padding: 12px 16px; text-align: center;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="critical-batch-tbody"> @forelse($criticalBatches ?? [] as $batch)
+                        <tr style="border-bottom: 1px solid var(--grey-100); transition: background 0.15s;" onmouseover="this.style.background='var(--grey-50)'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 12px 16px; font-weight: 500; color: var(--grey-600);">
+                                {{ $batch->item->kode_barang ?? '-' }}
+                            </td>
+                            <td style="padding: 12px 16px; font-weight: 600; color: var(--grey-800);">
+                                {{ $batch->item->nama_barang ?? 'Produk Tidak Diketahui' }}
+                            </td>
+                            <td style="padding: 12px 16px; font-family: monospace; font-weight: 600; color: var(--grey-700);">
+                                {{ $batch->batch_code }}
+                            </td>
+                            <td style="padding: 12px 16px; color: var(--grey-600);">
+                                <div style="display: inline-flex; align-items: center; gap: 6px; background: var(--grey-50); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--grey-100);">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    {{ \Carbon\Carbon::parse($batch->expiry_date)->format('d/m/Y') }}
+                                </div>
+                            </td>
+                            <td style="padding: 12px 16px; text-align: center;">
+                                @if($batch->is_expired)
+                                    <span class="badge badge--danger" style="font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">EXPIRED</span>
+                                @else
+                                    <span class="badge badge--amber" style="font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">PREEXPIRED</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" style="padding: 32px; text-align: center; color: var(--grey-400);">
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--grey-300);"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke-linecap="round" stroke-linejoin="round"/><polyline points="22 4 12 14.01 9 11.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    <span style="font-size: 13px;">Luar biasa! Tidak ada batch produk yang kedaluwarsa atau kritis saat ini.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     {{-- Status Rak & Produk --}}
-    <div class="dashboard-card" id="card-rack-status">
+    <div class="dashboard-card dashboard-card" id="card-rack-status">
         <div class="card-header">
             <h2 class="card-title">Status Rak & Produk</h2>
             <a href="{{ route('stock.index') }}" class="card-link">Lihat Semua →</a>
@@ -241,5 +302,39 @@ window.addEventListener('rfid-scanned', function(e) {
         if (rows.length > 15) rows[rows.length - 1].remove();
     }
 });
+
+// ==============================================================
+// UPDATE TABEL KEDALUWARSA SECARA REAL-TIME (SEAMLESS FETCH)
+// ==============================================================
+window.addEventListener("global-batch-scanned", async (e) => {
+    try {
+        // 1. Tembak ulang URL halaman dashboard saat ini di latar belakang
+        const response = await fetch(window.location.href);
+        const htmlString = await response.text();
+
+        // 2. Ubah string HTML menjadi elemen yang bisa dibaca
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlString, 'text/html');
+
+        // 3. Ekstrak data tbody yang TERBARU dari server
+        const newTbody = doc.getElementById('critical-batch-tbody');
+        const currentTbody = document.getElementById('critical-batch-tbody');
+
+        if (currentTbody && newTbody) {
+            // 4. Ganti isi tabel lama dengan yang baru secara instan
+            currentTbody.innerHTML = newTbody.innerHTML;
+
+            // 5. Beri efek kedip (flash) agar pengguna sadar tabelnya baru saja di-update
+            currentTbody.style.transition = 'opacity 0.3s ease-in-out';
+            currentTbody.style.opacity = '0.2';
+            setTimeout(() => {
+                currentTbody.style.opacity = '1';
+            }, 300);
+        }
+    } catch (error) {
+        console.error("Gagal memuat pembaruan tabel realtime:", error);
+    }
+});
+
 </script>
 @endpush

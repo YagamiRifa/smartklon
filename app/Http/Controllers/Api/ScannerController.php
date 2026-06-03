@@ -42,7 +42,7 @@ class ScannerController extends Controller
             // Mengembalikan pesan error ke Raspi jika tanggal ganda [cite: 600]
             return response()->json([
                 'success' => false,
-                'message' => 'Tanggal tersebut sudah ada'
+                'message' => 'Tanggal tersebut sudah terdaftar'
             ], 409);
         }
 

@@ -377,7 +377,7 @@
                     <th>SATUAN</th>
                     <th style="text-align:center;">TOTAL</th>
                     <th style="text-align:center;">AMAN</th>
-                    <th style="text-align:center;">PREEXPIRED</th>
+                    <th style="text-align:center;">PRE-EXPIRED</th>
                     <th style="text-align:center;">EXPIRED</th>
                     <th style="width:100px;text-align:center;">AKSI</th>
                 </tr>
@@ -427,8 +427,8 @@
                     </td>
 
                 </tr>
-                <tr class="tag-list-row" id="batches-{{ $item->id }}" style="display:none; background-color: #f8fafc;">
-                    <td colspan="9" class="tag-list-cell" style="padding: 16px;">
+                <tr class="tag-list-row" id="batches-{{ $item->id }}" style="display:none; background-color: #f8fafc; margin: auto;">
+                    <td colspan="10" class="tag-list-cell" style="padding: 16px;">
                         <div class="tag-list-inner" id="batch-list-inner-{{ $item->id }}">
                             <div class="tag-list-loading" style="display:flex; align-items:center; gap:8px; color:var(--grey-500);"><div class="spinner" style="width:16px; height:16px; border:2px solid var(--grey-200); border-top-color:var(--primary-500); border-radius:50%; animation:spin 1s linear infinite;"></div><span style="font-size:13px;">Memuat data batch…</span></div>
                         </div>
@@ -436,7 +436,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" class="text-center text-muted" style="padding:32px; text-align:center; color:var(--grey-500); font-size:14px;">Belum ada produk atau data batch.</td>
+                    <td colspan="10" class="text-center text-muted" style="padding:32px; text-align:center; color:var(--grey-500); font-size:14px;">Belum ada produk atau data batch.</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -582,10 +582,10 @@ function addBatchLog(data, isManual = false) {
         <div class="scan-log-indicator scan-log-dot--in"></div>
         <div class="scan-log-body">
             <span class="scan-log-name">${data.nama_barang}</span>
-            <span class="scan-log-epc">Exp: ${data.expiry_date}</span>
+            <span class=".scan-log-exp">Exp: ${data.expiry_date}</span>
         </div>
         <div class="scan-log-right">
-            <span class="badge badge--success" style="font-size:10px">${isManual ? 'MANUAL IN' : 'RASPI IN'}</span>
+            <span class="badge badge--success" style="font-size:10px">${isManual ? 'MANUAL IN' : 'SCANNED IN'}</span>
             <span class="scan-log-time">${time}</span>
         </div>`;
 
@@ -701,14 +701,14 @@ function renderBatchList(container, batches) {
 
     batches.forEach(b => {
         const badgeClass = b.status === 'expired' ? 'badge--danger' : (b.status === 'warning' ? 'badge--amber' : 'badge--success');
-        const badgeLabel = b.status === 'expired' ? 'EXPIRED' : (b.status === 'warning' ? 'PREEXPIRED' : 'AMAN');
+        const badgeLabel = b.status === 'expired' ? 'EXPIRED' : (b.status === 'warning' ? 'PRE-EXPIRED' : 'AMAN');
         const chipClass  = b.status === 'expired' ? 'tag-chip--out' : (b.status === 'warning' ? 'tag-chip--warning' : 'tag-chip--in');
 
         // ==> TAMBAHKAN data-status="${b.status}" DI SINI <==
-        html += `<div class="tag-chip ${chipClass}" data-status="${b.status}" style="position:relative; padding-right:28px;">
-            <span class="tag-epc">${b.batch_code}</span>
+        html += `<div class="tag-chip ${chipClass}" data-status="${b.status}" style="position:relative; width:32%; padding-right:28px;">
+            <span class="tag-bth">${b.batch_code}</span>
             <span class="tag-date">${b.expiry_date}</span>
-            <span class="badge ${badgeClass}" style="font-size:10px">${badgeLabel}</span>
+            <span class="badge ${badgeClass}" style="font-size:10px; margin-left: auto">${badgeLabel}</span>
             <button onclick="deleteBatch(${b.id}, ${itemId})" class="btn-delete-batch" title="Hapus Batch">✕</button>
         </div>`;
     });
@@ -732,8 +732,8 @@ function sortVisibleChips() {
         const chips = Array.from(container.children);
 
         chips.sort((a, b) => {
-            const nameA = a.querySelector('.tag-epc').textContent;
-            const nameB = b.querySelector('.tag-epc').textContent;
+            const nameA = a.querySelector('.tag-bth').textContent;
+            const nameB = b.querySelector('.tag-bth').textContent;
 
             // Ambil teks tanggal (dd/mm/yyyy) dan bongkar agar bisa dibaca JavaScript
             const dateAStr = a.querySelector('.tag-date').textContent.split('/');
@@ -1047,7 +1047,7 @@ function closeEditProductModal(e) {
 <style>
 /* ── Warna Status Expiry ── */
 .count-pill--amber { background:#FFFBEB; color:#F59E0B; }
-.badge--amber { background:#FFFBEB; color:#F59E0B; border:1px solid #FDE68A; }
+
 
 /* ── Layout 2 Kolom ── */
 .stock-control-row {display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px;}
@@ -1107,7 +1107,7 @@ function closeEditProductModal(e) {
 .tag-chip--in { border-color: #bbf7d0; }
 .tag-chip--warning { border-color: #FDE68A; }
 .tag-chip--out { border-color: #fecaca; }
-.tag-epc { font-family: monospace; font-weight: 600; color: var(--grey-700); }
+.tag-bth { font-family: monospace; font-weight: 600; color: var(--grey-700); }
 .tag-date { color: var(--grey-500); font-size: 11px; }
 
 /* ── Tombol Hapus Batch (Silang) ── */
@@ -1135,7 +1135,7 @@ function closeEditProductModal(e) {
 .badge--info { background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe; }
 .scan-log-body { flex:1;min-width:0; }
 .scan-log-name { display:block;font-size:12px;font-weight:600;color:var(--grey-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.scan-log-epc  { display:block;font-size:10px;color:var(--grey-400);font-family:monospace; }
+.scan-log-bth  { display:block;font-size:10px;color:var(--grey-400);font-family:monospace; }
 .scan-log-right { display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0; }
 .scan-log-time  { font-size:10px;color:var(--grey-400);font-variant-numeric:tabular-nums; }
 .badge--offline { background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA; font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.06em; }

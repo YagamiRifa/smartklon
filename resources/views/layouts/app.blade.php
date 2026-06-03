@@ -365,6 +365,9 @@ async function clearNotifications() {
 .notification-text { font-size: 12px; color: var(--grey-500); line-height: 1.4; }
 .notification-text strong { color: var(--grey-800); font-size: 13px; }
 .notification-empty { padding: 24px 16px; text-align: center; font-size: 12px; color: var(--grey-400); }
+
+
+.badge--amber { background:#FFFBEB; color:#F59E0B; border:1px solid #FDE68A; }
 </style>
 @stack('scripts')
 </body>
