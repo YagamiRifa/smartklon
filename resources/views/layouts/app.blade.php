@@ -311,19 +311,36 @@ async function clearNotifications() {
         setTimeout(() => { toast.style.transform = 'translateX(120%)'; setTimeout(() => toast.remove(), 300); }, 5000); // Hilang otomatis setelah 5 detik
     }
 
+    // // 2. Pendengar Reverb Global untuk Raspi (Scanner Expiry)
+    // document.addEventListener('DOMContentLoaded', function () {
+    //     if (window.Echo) {
+    //         window.Echo.channel('scanner-channel')
+    //             .listen('.batch.scanned', (e) => {
+    //                 // Munculkan Toast di halaman APA PUN yang sedang dibuka
+    //                 showGlobalToast('Scan Raspi Berhasil!', `Data masuk (Barcode: ${e.barcode})`);
+
+    //                 // Sebarkan sinyal khusus ke halaman (berguna untuk update log di halaman Expiry)
+    //                 window.dispatchEvent(new CustomEvent("global-batch-scanned", { detail: e }));
+    //             });
+    //     }
+    // });
+
     // 2. Pendengar Reverb Global untuk Raspi (Scanner Expiry)
-    document.addEventListener('DOMContentLoaded', function () {
+    // Menggunakan interval untuk menunggu Vite selesai memuat app.js (Echo)
+    const checkEcho = setInterval(() => {
         if (window.Echo) {
+            clearInterval(checkEcho); // Hentikan pengecekan setelah Echo siap
+
             window.Echo.channel('scanner-channel')
                 .listen('.batch.scanned', (e) => {
                     // Munculkan Toast di halaman APA PUN yang sedang dibuka
-                    showGlobalToast('Scan Raspi Berhasil!', `Data masuk (Barcode: ${e.barcode})`);
+                    showGlobalToast('Scan Berhasil!', `Batch ${e.nama_barang} berhasil ditambah.`);
 
                     // Sebarkan sinyal khusus ke halaman (berguna untuk update log di halaman Expiry)
                     window.dispatchEvent(new CustomEvent("global-batch-scanned", { detail: e }));
                 });
         }
-    });
+    }, 150); // Sistem akan mengecek ketersediaan Echo setiap 150 milidetik
 </script>
 
 <style>

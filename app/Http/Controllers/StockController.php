@@ -50,10 +50,33 @@ class StockController extends Controller
             'barcode'     => $request->barcode,
             'nama_barang' => $request->nama_barang,
             'deskripsi'   => $request->deskripsi,
-            'satuan'      => $request->satuan ?? 'pcs',
+            'satuan'      => strtoupper($request->satuan ?? 'PCS'),
         ]);
 
         return redirect()->back()->with('success', 'Produk berhasil ditambahkan.');
+    }
+    public function updateItem(Request $request, $id)
+    {
+        $item = Item::findOrFail($id);
+
+        $request->validate([
+            // Pengecualian ID agar tidak dianggap duplikat oleh sistem saat di-save
+            'kode_barang' => 'required|string|max:50|unique:items,kode_barang,' . $item->id,
+            'barcode'     => 'nullable|string|unique:items,barcode,' . $item->id,
+            'nama_barang' => 'required|string|max:255',
+            'deskripsi'   => 'nullable|string',
+            'satuan'      => 'nullable|string|max:50',
+        ]);
+
+        $item->update([
+            'kode_barang' => strtoupper($request->kode_barang),
+            'barcode'     => $request->barcode,
+            'nama_barang' => $request->nama_barang,
+            'deskripsi'   => $request->deskripsi,
+            'satuan'      => strtoupper($request->satuan ?? 'PCS'),
+        ]);
+
+        return redirect()->back()->with('success', 'Katalog produk ' . $item->nama_barang . ' berhasil diperbarui.');
     }
 
     public function getTagsByItem(Item $item)

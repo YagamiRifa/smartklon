@@ -19,10 +19,12 @@ class BatchScanned implements ShouldBroadcastNow
      * Create a new event instance.
      */
     public $barcode;
+    public $nama_barang;
     public $expiry_date;
-    public function __construct($barcode, $expiry_date)
+    public function __construct($barcode, $nama_barang, $expiry_date)
     {
         $this->barcode = $barcode;
+        $this->nama_barang = $nama_barang;
         $this->expiry_date = $expiry_date;
     }
 

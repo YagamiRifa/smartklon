@@ -25,6 +25,7 @@ Route::middleware('auth')->group(function () {
     // Stock Management
     Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
     Route::post('/stock/items', [StockController::class, 'storeItem'])->name('stock.items.store');
+    Route::put('/stock/items/{id}', [StockController::class, 'updateItem'])->name('stock.items.update');
     Route::get('/stock/items/{item}/tags', [StockController::class, 'getTagsByItem'])->name('stock.items.tags');
 
     // Scanner State

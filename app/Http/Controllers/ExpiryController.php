@@ -50,14 +50,7 @@ class ExpiryController extends Controller
             ->get();
 
         // Pastikan 'recentLogs' ditambahkan ke dalam compact()
-        return view('expiry.index', compact(
-            'items',
-            'totalBatch',
-            'safeBatch',
-            'warningBatch',
-            'expiredBatch',
-            'recentLogs'
-        ));
+        return view('expiry.index', compact('items', 'totalBatch', 'safeBatch', 'warningBatch', 'expiredBatch', 'recentLogs'));
 
         // return view('expiry.index', compact('items', 'totalBatch', 'safeBatch', 'warningBatch', 'expiredBatch'));
     }
@@ -104,6 +97,7 @@ class ExpiryController extends Controller
                 'message' => 'Batch item ' . $item->nama_barang . ' berhasil di tambah.',
                 'data' => [
                     'barcode' => $item->barcode ?? 'Tanpa Barcode',
+                    'nama_barang' => $item->nama_barang, // Tambahan baru
                     'expiry_date' => Carbon::parse($batch->expiry_date)->format('d/m/Y')
                 ]
             ]);

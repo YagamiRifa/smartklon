@@ -54,7 +54,7 @@ class ScannerController extends Controller
 
         // -> TAMBAHKAN BARIS INI <-
         // Menyiarkan data ke frontend secara real-time!
-        broadcast(new BatchScanned($item->barcode, $request->expiry_date));
+        broadcast(new BatchScanned($item->barcode, $item->nama_barang, $request->expiry_date));
 
         // 6. Mengembalikan sinyal sukses ke Raspi [cite: 599]
         return response()->json([

@@ -149,7 +149,7 @@
             </div>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" id="toggle-add-icon" style="transition:transform .25s;flex-shrink:0"><polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </div>
-        <div class="card-body" id="add-form-body" style="display:none;padding-top:0;">
+        <div class="card-body" id="add-form-body" style="display:none;padding-top:0.5%;">
             <p class="text-sm text-muted" style="margin-bottom:12px;">Gunakan jika produk belum ada di pilihan atas.</p>
             <form method="POST" action="{{ route('stock.items.store') }}">
                 @csrf
@@ -171,7 +171,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="satuan">SATUAN</label>
-                        <input type="text" id="satuan" name="satuan" class="form-input" placeholder="pcs" value="{{ old('satuan', 'pcs') }}">
+                        <input type="text" id="satuan" name="satuan" class="form-input" placeholder="PCS" value="{{ old('satuan', 'PCS') }}">
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="deskripsi">DESKRIPSI</label>
@@ -196,6 +196,8 @@
                     <span class="pulse-dot pulse-dot--green" id="log-pulse"></span>
                     Log Scan Pemindai
                 </h2>
+                <span class="badge badge--live" id="log-live-badge" style="display:none;">LIVE</span>
+                <span class="badge badge--offline" id="log-offline-badge" style="display:none;">OFFLINE</span>
             </div>
             <button onclick="clearScanLog()" style="font-size:11px;padding:3px 8px;border:1px solid var(--grey-200);border-radius:5px;background:#fff;cursor:pointer;color:var(--grey-500);">Bersihkan</button>
         </div>
@@ -203,7 +205,7 @@
             <div id="batch-scan-log" class="stock-scan-log">
                 <div class="realtime-empty" id="log-empty-state">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" opacity="0.25"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                    <span id="log-empty-text">Menunggu scan dari pemindai…</span>
+                    <span id="log-empty-text">Menunggu koneksi pemindai…</span>
                 </div>
             </div>
         </div>
@@ -369,15 +371,15 @@
             <thead>
                 <tr>
                     <th style="width:40px;"></th>
-                    <th style="font-size:11px;font-weight:600;color:var(--grey-400);text-transform:uppercase;letter-spacing:.05em;padding:12px 16px;">Kode</th>
-                    <th style="font-size:11px;font-weight:600;color:var(--grey-400);text-transform:uppercase;letter-spacing:.05em;padding:12px 16px;">Barcode</th>
-                    <th style="font-size:11px;font-weight:600;color:var(--grey-400);text-transform:uppercase;letter-spacing:.05em;padding:12px 16px;">Nama Produk</th>
-                    <th style="font-size:11px;font-weight:600;color:var(--grey-400);text-transform:uppercase;letter-spacing:.05em;padding:12px 16px;">Satuan</th>
-                    <th style="font-size:11px;font-weight:600;color:var(--grey-400);text-transform:uppercase;letter-spacing:.05em;padding:12px 16px;text-align:center;">Total Batch</th>
-                    <th style="font-size:11px;font-weight:600;color:var(--grey-400);text-transform:uppercase;letter-spacing:.05em;padding:12px 16px;text-align:center;">Aman</th>
-                    <th style="font-size:11px;font-weight:600;color:var(--grey-400);text-transform:uppercase;letter-spacing:.05em;padding:12px 16px;text-align:center;">Mendekati Expired</th>
-                    <th style="font-size:11px;font-weight:600;color:var(--grey-400);text-transform:uppercase;letter-spacing:.05em;padding:12px 16px;text-align:center;">Expired</th>
-                    <th style="font-size:11px;font-weight:600;color:var(--grey-400);text-transform:uppercase;letter-spacing:.05em;padding:12px 16px;text-align:center;">Aksi</th>
+                    <th style="text-align:center;">KODE</th>
+                    <th>BARCODE</th>
+                    <th>NAMA BARANG</th>
+                    <th>SATUAN</th>
+                    <th style="text-align:center;">TOTAL</th>
+                    <th style="text-align:center;">AMAN</th>
+                    <th style="text-align:center;">PREEXPIRED</th>
+                    <th style="text-align:center;">EXPIRED</th>
+                    <th style="width:100px;text-align:center;">AKSI</th>
                 </tr>
             </thead>
             <tbody id="expiry-table-body">
@@ -387,7 +389,7 @@
                     data-name="{{ $item->nama_barang }}"
                     data-kode="{{ $item->kode_barang }}"
                     data-barcode="{{ $item->barcode }}"
-                    data-satuan="{{ $item->satuan ?? 'pcs' }}"
+                    data-satuan="{{ $item->satuan ?? 'PCS' }}"
                     data-deskripsi="{{ $item->deskripsi }}"
                     data-total="{{ $item->batchExpiries->count() ?? 0 }}"
                     data-safe="{{ $item->safe_count }}"
@@ -407,7 +409,7 @@
                     </td>
 
                     <td class="font-medium" style="padding:12px 16px; font-size:14px; font-weight:500;">{{ $item->nama_barang }}</td>
-                    <td style="padding:12px 16px; font-size:13px; color:var(--grey-500);">{{ $item->satuan ?? 'pcs' }}</td>
+                    <td style="padding:12px 16px; font-size:13px; color:var(--grey-500);">{{ $item->satuan ?? 'PCS' }}</td>
                     <td style="padding:12px 16px; text-align:center;"><span class="count-pill" style="font-size:12px; font-weight:600; padding:2px 8px; border-radius:12px;">{{ $item->batchExpiries->count() ?? 0 }}</span></td>
 
                     <td style="padding:12px 16px; text-align:center;"><span class="count-pill count-pill--green" style="font-size:12px; font-weight:600; padding:2px 8px; border-radius:12px;">{{ $item->safe_count }}</span></td>
@@ -460,43 +462,110 @@ function toggleAddForm() {
 @if($errors->any())
     toggleAddForm();
 @endif
+// ==============================================================
+// PEMANTAU STATUS KONEKSI REVERB (LIVE / OFFLINE)
+// ==============================================================
+let wsConnected = false;
+
+window.addEventListener('reverb-connected', () => {
+    wsConnected = true;
+    document.getElementById('log-live-badge').style.display    = 'inline-block';
+    document.getElementById('log-offline-badge').style.display = 'none';
+
+    const emptyText = document.getElementById('log-empty-text');
+    if (emptyText) emptyText.textContent = 'Menunggu scan dari pemindai...';
+
+    const pulse = document.getElementById('log-pulse');
+    if (pulse) {
+        pulse.classList.add('pulse-dot--green');
+        pulse.style.background = ''; // Kembalikan ke warna CSS asal
+    }
+});
+
+window.addEventListener('reverb-disconnected', () => {
+    wsConnected = false;
+    document.getElementById('log-live-badge').style.display    = 'none';
+    document.getElementById('log-offline-badge').style.display = 'inline-block';
+
+    const emptyText = document.getElementById('log-empty-text');
+    if (emptyText) emptyText.textContent = 'WebSocket terputus. Periksa koneksi Reverb.';
+
+    const pulse = document.getElementById('log-pulse');
+    if (pulse) {
+        pulse.classList.remove('pulse-dot--green');
+        pulse.style.background = 'var(--grey-400)'; // Matikan lampu hijau
+    }
+});
 
 // ==============================================================
 // 1. MOCKUP LISTENER WEBSOCKET UNTUK RASPI
 // ==============================================================
-// function addBatchLog(data) {
-//     const log = document.getElementById('batch-scan-log');
-//     const emp = document.getElementById('log-empty-state');
-//     if (emp) emp.remove();
+// ==============================================================
+// FUNGSI UPDATE ANGKA STATISTIK REAL-TIME (TANPA RELOAD)
+// ==============================================================
+function updateRealtimeStats(barcode, expiryDateStr) {
+    // 1. Hitung Status Expiry dari Tanggal (Format: dd/mm/yyyy)
+    const parts = expiryDateStr.split('/');
+    const expDate = new Date(parts[2], parts[1] - 1, parts[0]);
 
-//     const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset jam agar hitungan harinya akurat
 
-//     const el = document.createElement('div');
-//     el.className = 'scan-log-item scan-log-item--in fade-in';
-//     el.innerHTML = `
-//         <div class="scan-log-indicator scan-log-dot--in"></div>
-//         <div class="scan-log-body">
-//             <span class="scan-log-name">Barcode: ${data.barcode}</span>
-//             <span class="scan-log-epc">Exp: ${data.expiry_date}</span>
-//         </div>
-//         <div class="scan-log-right">
-//             <span class="badge badge--success" style="font-size:10px">BATCH IN</span>
-//             <span class="scan-log-time">${time}</span>
-//         </div>`;
+    const warningDate = new Date(today);
+    warningDate.setDate(warningDate.getDate() + 14); // Batas H-14
 
-//     log.insertBefore(el, log.firstChild);
+    let status = 'safe';
+    if (expDate < today) {
+        status = 'expired';
+    } else if (expDate <= warningDate) {
+        status = 'warning';
+    }
 
-//     const items = log.querySelectorAll('.scan-log-item');
-//     if (items.length > 50) items[items.length - 1].remove();
+    // 2. Update Angka di Kartu Statistik Atas
+    const totalCard = document.getElementById('total-batch-count');
+    if (totalCard) totalCard.textContent = parseInt(totalCard.textContent) + 1;
 
-//     const pulse = document.getElementById('log-pulse');
-//     if (pulse) { pulse.style.transform = 'scale(1.6)'; setTimeout(() => pulse.style.transform = '', 300); }
+    if (status === 'safe') {
+        const card = document.getElementById('safe-batch-count');
+        if (card) card.textContent = parseInt(card.textContent) + 1;
+    } else if (status === 'warning') {
+        const card = document.getElementById('warning-batch-count');
+        if (card) card.textContent = parseInt(card.textContent) + 1;
+    } else if (status === 'expired') {
+        const card = document.getElementById('expired-batch-count');
+        if (card) card.textContent = parseInt(card.textContent) + 1;
+    }
 
-//     // Auto Reload setelah data raspi masuk
-//     setTimeout(() => {
-//         window.location.reload();
-//     }, 1500);
-// }
+    // 3. Update Angka di Baris Tabel Produk yang Bersangkutan
+    const row = document.querySelector(`.stock-row[data-barcode="${barcode}"]`);
+    if (row) {
+        // Update Data Attribute (Berguna jika kamu menggunakan fitur sorting/filter)
+        row.setAttribute('data-total', parseInt(row.getAttribute('data-total') || 0) + 1);
+
+        // Tambah +1 pada kolom Total Batch (Kolom ke-6)
+        const tdTotal = row.querySelector('td:nth-child(6) .count-pill');
+        if (tdTotal) tdTotal.textContent = parseInt(tdTotal.textContent) + 1;
+
+        // Tambah +1 pada kolom status spesifik
+        if (status === 'safe') {
+            row.setAttribute('data-safe', parseInt(row.getAttribute('data-safe') || 0) + 1);
+            const tdSafe = row.querySelector('td:nth-child(7) .count-pill');
+            if (tdSafe) tdSafe.textContent = parseInt(tdSafe.textContent) + 1;
+        } else if (status === 'warning') {
+            row.setAttribute('data-warning', parseInt(row.getAttribute('data-warning') || 0) + 1);
+            const tdWarn = row.querySelector('td:nth-child(8) .count-pill');
+            if (tdWarn) tdWarn.textContent = parseInt(tdWarn.textContent) + 1;
+        } else if (status === 'expired') {
+            row.setAttribute('data-expired', parseInt(row.getAttribute('data-expired') || 0) + 1);
+            const tdExp = row.querySelector('td:nth-child(9) .count-pill');
+            if (tdExp) tdExp.textContent = parseInt(tdExp.textContent) + 1;
+        }
+
+        // Buat baris tabel berkedip sebentar agar pengguna notice ada data masuk
+        row.style.backgroundColor = '#ecfdf5';
+        setTimeout(() => row.style.backgroundColor = '', 800);
+    }
+}
 
 // A. Fungsi Log HANYA untuk halaman Expiry ini
 function addBatchLog(data, isManual = false) {
@@ -511,7 +580,7 @@ function addBatchLog(data, isManual = false) {
     el.innerHTML = `
         <div class="scan-log-indicator scan-log-dot--in"></div>
         <div class="scan-log-body">
-            <span class="scan-log-name">Barcode: ${data.barcode}</span>
+            <span class="scan-log-name">${data.nama_barang}</span>
             <span class="scan-log-epc">Exp: ${data.expiry_date}</span>
         </div>
         <div class="scan-log-right">
@@ -523,12 +592,16 @@ function addBatchLog(data, isManual = false) {
     const items = log.querySelectorAll('.scan-log-item');
     if (items.length > 10) items[items.length - 1].remove();
 
-    setTimeout(() => window.location.reload(), 2000);
+    // ==> TAMBAHKAN BARIS INI <==
+    // Panggil update statistik tabel secara ajaib!
+    if (data.barcode && data.expiry_date) {
+        updateRealtimeStats(data.barcode, data.expiry_date);
+    }
 }
 
 // B. Tangkap sinyal Global dari app.blade.php untuk menambah Log (Tanpa membuat Toast lagi)
 window.addEventListener("global-batch-scanned", (e) => {
-    addBatchLog({ barcode: e.detail.barcode, expiry_date: e.detail.expiry_date }, false);
+    addBatchLog({ barcode: e.detail.barcode, nama_barang: e.detail.nama_barang, expiry_date: e.detail.expiry_date }, false);
 });
 
 // C. Form Manual Input (Panggil Toast Global secara manual)
@@ -547,7 +620,7 @@ async function submitManualBatch(e) {
 
             // Panggil fungsi pembuat Toast yang ada di app.blade.php
             if (typeof showGlobalToast === 'function') {
-                showGlobalToast('Input Manual Berhasil!', `Batch (Barcode: ${result.data.barcode}) berhasil ditambah.`);
+                showGlobalToast('Input Manual Berhasil!', `Batch ${result.data.nama_barang} berhasil ditambah.`);
             }
 
             addBatchLog(result.data, true);
@@ -712,7 +785,7 @@ function applyFilters() {
 async function openExpiryDetailModal(itemId) {
     const row = document.getElementById('row-' + itemId);
     // Set informasi satuan produk ke modal
-    const satuan = row.getAttribute('data-satuan') || 'pcs';
+    const satuan = row.getAttribute('data-satuan') || 'PCS';
 
     if (!row) return;
 
@@ -981,6 +1054,29 @@ function closeEditProductModal(e) {
 .stock-table-filters { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
 .filter-select { height:34px;padding:0 10px;border:1px solid var(--grey-200);border-radius:8px;font-size:12px;background:white;color:var(--grey-700);cursor:pointer;outline:none; }
 .filter-select:focus { border-color:var(--primary-400); }
+
+/* ── Log panel ── */
+.stock-scan-log { display:flex;flex-direction:column;gap:5px;max-height:300px;overflow-y:auto;padding-right:2px; }
+.stock-scan-log::-webkit-scrollbar{width:3px;} .stock-scan-log::-webkit-scrollbar-thumb{background:var(--grey-200);border-radius:2px;}
+.scan-log-item { display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:7px;border-left:2px solid transparent; }
+.scan-log-item--in    { background:var(--green-50);border-left-color:var(--green-400); }
+.scan-log-item--out   { background:var(--red-50);border-left-color:var(--red-400); }
+.scan-log-item--check { background:#eff6ff;border-left-color:#60a5fa; }
+.scan-log-indicator { width:7px;height:7px;border-radius:50%;flex-shrink:0; }
+.scan-log-dot--in    { background:var(--green-500); }
+.scan-log-dot--out   { background:var(--red-500); }
+.scan-log-dot--check { background:#3b82f6; }
+.badge--info { background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe; }
+.scan-log-body { flex:1;min-width:0; }
+.scan-log-name { display:block;font-size:12px;font-weight:600;color:var(--grey-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.scan-log-epc  { display:block;font-size:10px;color:var(--grey-400);font-family:monospace; }
+.scan-log-right { display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0; }
+.scan-log-time  { font-size:10px;color:var(--grey-400);font-variant-numeric:tabular-nums; }
+.badge--offline { background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA; font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.06em; }
+
+
+/* ── nav-item--soon ── */
+.nav-item--soon { opacity:.5; pointer-events:none; }
 
 /* ── Custom Searchable Dropdown ── */
 .custom-option { padding: 10px 12px; cursor: pointer; font-size: 13px; color: var(--grey-700); border-bottom: 1px solid var(--grey-50); transition: background 0.15s; }

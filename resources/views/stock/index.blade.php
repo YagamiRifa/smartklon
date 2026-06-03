@@ -299,7 +299,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="satuan">Satuan</label>
-                        <input type="text" id="satuan" name="satuan" class="form-input" placeholder="pcs" value="{{ old('satuan', 'pcs') }}">
+                        <input type="text" id="satuan" name="satuan" class="form-input" placeholder="PCS" value="{{ old('satuan', 'PCS') }}">
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="deskripsi">Deskripsi</label>
@@ -398,7 +398,7 @@
                     data-kode="{{ strtolower($item->kode_barang) }}"
                     data-in="{{ $item->in_stock_count }}"
                     data-pct="{{ $pct }}"
-                    data-satuan="{{ e($item->satuan ?? 'pcs') }}"
+                    data-satuan="{{ e($item->satuan ?? 'PCS') }}"
                     data-deskripsi="{{ e($item->deskripsi ?? '') }}">
                     <td>
                         <button class="expand-btn" onclick="toggleTagList({{ $item->id }})" id="expand-btn-{{ $item->id }}">
