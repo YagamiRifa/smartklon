@@ -34,6 +34,9 @@ class ExpiryController extends Controller
                     $item->safe_count++;
                 }
             }
+
+            $earliest = $item->batchExpiries->min('expiry_date');
+            $item->earliest_date = $earliest ? Carbon::parse($earliest)->format('Y-m-d') : '9999-12-31';
             return $item;
         });
 

@@ -353,16 +353,16 @@
             <select class="filter-select" id="expiry-filter" onchange="applyFilters()">
                 <option value="all">Semua</option>
                 <option value="has_expired">Expired</option>
-                <option value="has_warning">Mendekati Expired</option>
+                <option value="has_warning">Pre-Expired</option>
                 <option value="has_safe">Aman</option>
             </select>
 
             {{-- Sort dropdown --}}
             <select class="filter-select" id="expiry-sort" onchange="applyFilters()">
                 <option value="name_asc">Nama A–Z</option>
-                <option value="expired_desc">Expired ↓</option>
-                <option value="warning_desc">Mendekati Expired ↓</option>
-                <option value="safe_desc">Aman ↓</option>
+                <option value="name_desc">Nama Z–A</option>
+                <option value="date_asc">Date ↑</option>
+                <option value="date_desc">Date ↓</option>
             </select>
         </div>
     </div>
@@ -394,7 +394,8 @@
                     data-total="{{ $item->batchExpiries->count() ?? 0 }}"
                     data-safe="{{ $item->safe_count }}"
                     data-warning="{{ $item->warning_count }}"
-                    data-expired="{{ $item->expired_count }}">
+                    data-expired="{{ $item->expired_count }}"
+                    data-earliest-date="{{ $item->earliest_date }}">
                     <td style="padding:12px 16px;">
                         <button class="expand-btn" onclick="toggleBatchList({{ $item->id }})" id="expand-btn-{{ $item->id }}">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="expand-icon" id="expand-icon-{{ $item->id }}">
@@ -667,6 +668,28 @@ async function toggleBatchList(itemId) {
     }
 }
 
+// ==============================================================
+// FUNGSI UNTUK MENYARING CHIP BATCH DI DALAM ACCORDION
+// ==============================================================
+function filterVisibleChips() {
+    // Ambil nilai filter aktif dari dropdown atas
+    const currentFilter = document.getElementById('expiry-filter').value;
+    const chips = document.querySelectorAll('.tag-chip');
+
+    chips.forEach(chip => {
+        const status = chip.getAttribute('data-status'); // Nilainya: 'expired', 'warning', atau 'aman'
+        let show = true;
+
+        // Tentukan apakah chip harus disembunyikan berdasarkan pilihan filter dropdown
+        if (currentFilter === 'has_expired' && status !== 'expired') show = false;
+        else if (currentFilter === 'has_warning' && status !== 'warning') show = false;
+        else if (currentFilter === 'has_safe' && status !== 'aman') show = false;
+
+        // Terapkan perubahan display (inline-flex untuk menjaga layout chip)
+        chip.style.display = show ? 'inline-flex' : 'none';
+    });
+}
+
 function renderBatchList(container, batches) {
     if (!batches?.length) {
         container.innerHTML = '<div class="tag-empty-state" style="padding:16px; text-align:center; color:var(--grey-500); background:#fff; border-radius:8px; border:1px dashed var(--grey-200);"><p style="margin:0; font-size:13px;">Belum ada batch expiry untuk produk ini.</p></div>';
@@ -681,7 +704,8 @@ function renderBatchList(container, batches) {
         const badgeLabel = b.status === 'expired' ? 'EXPIRED' : (b.status === 'warning' ? 'PREEXPIRED' : 'AMAN');
         const chipClass  = b.status === 'expired' ? 'tag-chip--out' : (b.status === 'warning' ? 'tag-chip--warning' : 'tag-chip--in');
 
-        html += `<div class="tag-chip ${chipClass}" style="position:relative; padding-right:28px;">
+        // ==> TAMBAHKAN data-status="${b.status}" DI SINI <==
+        html += `<div class="tag-chip ${chipClass}" data-status="${b.status}" style="position:relative; padding-right:28px;">
             <span class="tag-epc">${b.batch_code}</span>
             <span class="tag-date">${b.expiry_date}</span>
             <span class="badge ${badgeClass}" style="font-size:10px">${badgeLabel}</span>
@@ -690,6 +714,51 @@ function renderBatchList(container, batches) {
     });
     html += '</div></div>';
     container.innerHTML = html;
+
+    // ==> TAMBAHKAN BARIS INI <==
+    // Agar ketika accordion dibuka, chip langsung tersaring mengikuti filter aktif
+    sortVisibleChips();
+    filterVisibleChips();
+}
+
+// ==============================================================
+// FUNGSI UNTUK MENGURUTKAN CHIP BATCH DI DALAM ACCORDION
+// ==============================================================
+function sortVisibleChips() {
+    const sort = document.getElementById('expiry-sort').value;
+    const allChipContainers = document.querySelectorAll('.tag-chips');
+
+    allChipContainers.forEach(container => {
+        const chips = Array.from(container.children);
+
+        chips.sort((a, b) => {
+            const nameA = a.querySelector('.tag-epc').textContent;
+            const nameB = b.querySelector('.tag-epc').textContent;
+
+            // Ambil teks tanggal (dd/mm/yyyy) dan bongkar agar bisa dibaca JavaScript
+            const dateAStr = a.querySelector('.tag-date').textContent.split('/');
+            const dateBStr = b.querySelector('.tag-date').textContent.split('/');
+
+            // Format: new Date(Tahun, Bulan - 1, Tanggal)
+            const dateA = new Date(dateAStr[2], dateAStr[1] - 1, dateAStr[0]).getTime();
+            const dateB = new Date(dateBStr[2], dateBStr[1] - 1, dateBStr[0]).getTime();
+
+            // Logika Pengurutan
+            if (sort === 'name_asc') {
+                return nameA.localeCompare(nameB);
+            } else if (sort === 'name_desc') {
+                return nameB.localeCompare(nameA);
+            } else if (sort === 'date_asc') {
+                return dateA - dateB;
+            } else if (sort === 'date_desc') {
+                return dateB - dateA;
+            }
+            return 0;
+        });
+
+        // Tanamkan kembali chip ke layar
+        chips.forEach(chip => container.appendChild(chip));
+    });
 }
 
 async function deleteBatch(batchId, itemId) {
@@ -754,21 +823,15 @@ function applyFilters() {
     const visible = rows.filter(r => r.style.display !== 'none');
 
     visible.sort((a, b) => {
-        const aName    = a.getAttribute('data-name') || '';
-        const bName    = b.getAttribute('data-name') || '';
-        const aTotal   = parseInt(a.getAttribute('data-total') || 0);
-        const bTotal   = parseInt(b.getAttribute('data-total') || 0);
-        const aExpired = parseInt(a.getAttribute('data-expired') || 0);
-        const bExpired = parseInt(b.getAttribute('data-expired') || 0);
-        const aWarning = parseInt(a.getAttribute('data-warning') || 0);
-        const bWarning = parseInt(b.getAttribute('data-warning') || 0);
-        const aSafe    = parseInt(a.getAttribute('data-safe') || 0);
-        const bSafe    = parseInt(b.getAttribute('data-safe') || 0);
+        const aName = a.getAttribute('data-name') || '';
+        const bName = b.getAttribute('data-name') || '';
+        const aDate = a.getAttribute('data-earliest-date') || '9999-12-31';
+        const bDate = b.getAttribute('data-earliest-date') || '9999-12-31';
 
-        if (sort === 'name_asc')     return aName.localeCompare(bName);
-        if (sort === 'expired_desc') return bExpired - aExpired;
-        if (sort === 'warning_desc') return bWarning - aWarning;
-        if (sort === 'safe_desc')    return bSafe - aSafe;
+        if (sort === 'name_asc')  return aName.localeCompare(bName);
+        if (sort === 'name_desc') return bName.localeCompare(aName);
+        if (sort === 'date_asc')  return aDate.localeCompare(bDate); // Terdekat di atas
+        if (sort === 'date_desc') return bDate.localeCompare(aDate); // Terjauh di atas
         return 0;
     });
 
@@ -777,6 +840,9 @@ function applyFilters() {
         const batchRow = document.getElementById('batches-' + row.getAttribute('data-item-id'));
         if (batchRow) tbody.appendChild(batchRow);
     });
+
+    sortVisibleChips();
+    filterVisibleChips();
 }
 
 // ==============================================================
