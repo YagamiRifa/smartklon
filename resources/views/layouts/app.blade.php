@@ -133,6 +133,7 @@
                 <div class="topbar-time" id="topbar-time"></div>
 
                 {{-- ===== LONCENG NOTIFIKASI ===== --}}
+                {{-- ===== LONCENG NOTIFIKASI ===== --}}
                 <div class="topbar-notification" id="notification-wrapper">
                     <button class="notification-btn" id="notification-btn" aria-label="Notifikasi">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -141,8 +142,8 @@
                             $totalNotifikasi = ($globalExpiredCount ?? 0) + ($globalWarningCount ?? 0);
                         @endphp
 
-                        {{-- Beri ID 'notif-counter' dan selalu render elemennya, sembunyikan jika 0 --}}
-                        <span id="notif-counter" class="notification-badge {{ ($globalExpiredCount ?? 0) > 0 ? 'notification-badge--red' : 'notification-badge--amber' }}" style="{{ $totalNotifikasi == 0 ? 'display: none;' : '' }}">
+                        {{-- PERBAIKAN: Elemen selalu ada, hanya disembunyikan lewat CSS jika bernilai 0 --}}
+                        <span id="notif-counter" class="notification-badge {{ ($globalExpiredCount ?? 0) > 0 ? 'notification-badge--red' : 'notification-badge--amber' }}" style="{{ $totalNotifikasi > 0 ? '' : 'display: none;' }}">
                             {{ $totalNotifikasi }}
                         </span>
                     </button>
@@ -151,11 +152,12 @@
                     <div class="notification-dropdown" id="notification-dropdown">
                         <div class="notification-header" style="display: flex; justify-content: space-between; align-items: center;">
                             <h3 class="notification-title">Notifikasi Sistem</h3>
-                            {{-- Tombol bersihkan --}}
-                            <button id="btn-clear-notif" onclick="clearNotifications()" style="{{ $totalNotifikasi == 0 ? 'display: none;' : '' }} background: none; border: none; color: var(--primary-600); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: background 0.15s;">Bersihkan</button>
+
+                            {{-- PERBAIKAN: Beri ID pada tombol bersihkan agar bisa dimunculkan via JS --}}
+                            <button id="btn-clear-notif" onclick="clearNotifications()" style="{{ $totalNotifikasi > 0 ? '' : 'display: none;' }} background: none; border: none; color: var(--primary-600); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: background 0.15s;">Bersihkan</button>
                         </div>
 
-                        {{-- Beri ID 'notif-list' pada wadah daftarnya --}}
+                        {{-- PERBAIKAN: Pastikan ID wadah ini terpasang sempurna --}}
                         <div class="notification-body" id="notif-list">
                             @if(($globalExpiredCount ?? 0) > 0)
                                 <a href="{{ route('expiry.index') }}" class="notification-item notification-item--red">
@@ -181,14 +183,14 @@
                                 </a>
                             @endif
 
-                            @if(($globalExpiredCount ?? 0) == 0 && ($globalWarningCount ?? 0) == 0)
-                                <div class="notification-empty" id="notif-empty" style="{{ $totalNotifikasi > 0 ? 'display: none;' : '' }}">
-                                    Belum ada notifikasi baru.
-                                </div>
-                            @endif
+                            {{-- PERBAIKAN: Beri ID pada state kosong --}}
+                            <div class="notification-empty" id="notif-empty" style="{{ $totalNotifikasi > 0 ? 'display: none;' : '' }}">
+                                Belum ada notifikasi baru.
+                            </div>
                         </div>
                     </div>
                 </div>
+
             </div>
         </header>
 
@@ -335,23 +337,22 @@ async function clearNotifications() {
                 });
 
             // B. PENDENGAR UNTUK ALARM KEDALUWARSA (BARU!)
+            // B. PENDENGAR UNTUK ALARM KEDALUWARSA (DENGAN NAMA BARU)
             window.Echo.channel('global-alerts')
-                .listen('BatchExpiryAlert', (e) => {
+                .listen('.batch.expiry.alert', (e) => { // <== Perhatikan titik di depan nama event
 
                     // 1. Tambah angka di lonceng
                     const counterEl = document.getElementById('notif-counter');
                     if (counterEl) {
                         let currentCount = parseInt(counterEl.innerText || 0);
                         counterEl.innerText = currentCount + 1;
-                        counterEl.style.display = 'inline-block';
+                        counterEl.style.display = 'inline-block'; // Paksa tampil jika sebelumnya tersembunyi
 
-                        // Ubah lencana jadi merah jika expired
                         if (e.status === 'expired') {
                             counterEl.classList.remove('notification-badge--amber');
                             counterEl.classList.add('notification-badge--red');
                         }
 
-                        // Beri efek denyut animasi
                         counterEl.classList.add('pulse-animation');
                         setTimeout(() => counterEl.classList.remove('pulse-animation'), 1000);
                     }
@@ -367,7 +368,6 @@ async function clearNotifications() {
                     if (listEl) {
                         if (emptyEl) emptyEl.style.display = 'none';
 
-                        // Buat link elemen baru
                         const notifItem = document.createElement('a');
                         notifItem.href = "{{ route('expiry.index') }}";
                         notifItem.className = e.status === 'expired' ? 'notification-item notification-item--red' : 'notification-item notification-item--amber';
@@ -379,23 +379,22 @@ async function clearNotifications() {
                         notifItem.innerHTML = `
                             <div class="notification-icon">${iconSvg}</div>
                             <div class="notification-text">
-                                <strong>${e.namaBarang} (${e.batchCode})</strong><br>
+                                <strong>Peringatan: ${e.namaBarang} (${e.batchCode})</strong><br>
                                 ${e.pesan}
                             </div>
                         `;
 
-                        // Sisipkan pesan di baris paling atas
                         listEl.prepend(notifItem);
                     }
 
-                    // 4. Munculkan juga Toast peringatan agar lebih heboh
+                    // 4. Munculkan Toast
                     showGlobalToast(
                         e.status === 'expired' ? '🚨 BARANG EXPIRED!' : '⚠️ MASA KRITIS',
                         `${e.namaBarang} - ${e.pesan}`,
                         e.status
                     );
                 });
-        }
+            }
     }, 150); // Sistem akan mengecek ketersediaan Echo setiap 150 milidetik
 </script>
 

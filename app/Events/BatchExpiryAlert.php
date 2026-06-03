@@ -40,4 +40,8 @@ class BatchExpiryAlert implements ShouldBroadcastNow
         // Kita buat channel khusus bernama "global-alerts"
         return new Channel('global-alerts');
     }
+    public function broadcastAs()
+    {
+        return 'batch.expiry.alert';
+    }
 }

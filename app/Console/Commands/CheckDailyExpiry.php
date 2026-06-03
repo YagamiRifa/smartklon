@@ -24,30 +24,34 @@ class CheckDailyExpiry extends Command
     public function handle()
     {
         $today = Carbon::today();
-        $warningDate = Carbon::today()->addDays(14); // Tetapkan batas mendekati expired (H-14)
+        $warningLimit = Carbon::today()->addDays(14); // Batas maksimal H-14
 
-        // Cari barang yang TEPAT kedaluwarsa hari ini ATAU TEPAT H-14 dari sekarang
-        $newlyExpired = BatchExpiry::with('item')
-            ->where(function ($query) use ($today, $warningDate) {
-                $query->whereDate('expiry_date', $today)
-                    ->orWhereDate('expiry_date', $warningDate);
-            })
+        // Ambil SEMUA barang yang tanggal kedaluwarsanya <= H-14
+        // (Ini mencakup yang expired dan yang mendekati expired)
+        $kritis = BatchExpiry::with('item')
+            ->whereDate('expiry_date', '<=', $warningLimit)
             ->get();
 
-        if ($newlyExpired->isEmpty()) {
-            $this->info('Tidak ada barang baru yang expired atau mendekati expired hari ini.');
+        if ($kritis->isEmpty()) {
+            $this->info('Tidak ada barang baru yang expired atau mendekati expired.');
             return;
         }
 
         // Jika ada, pancarkan (broadcast) Event Reverb untuk setiap barang!
-        foreach ($newlyExpired as $batch) {
-            // Kita parse tanggalnya agar aman saat dibandingkan
+        foreach ($kritis as $batch) {
             $expiryDate = Carbon::parse($batch->expiry_date)->startOfDay();
 
-            // Tentukan status: jika tanggal kedaluwarsa sama dengan hari ini (atau kelewatan) = expired
-            // Jika lebih dari hari ini (yaitu H-14) = warning
+            // Jika tanggalnya lewat atau sama dengan hari ini = expired
+            // Jika masih di atas hari ini (tapi di bawah H-14) = warning
             $status = $expiryDate->lessThanOrEqualTo($today) ? 'expired' : 'warning';
-            $pesan = $status === 'expired' ? 'Telah kedaluwarsa hari ini!' : 'Memasuki masa kritis (H-14)!';
+
+            // Hitung sisa hari untuk ditampilkan di pesan
+            if ($status === 'warning') {
+                $sisaHari = $today->diffInDays($expiryDate);
+                $pesan = "Memasuki masa kritis (Sisa {$sisaHari} hari)!";
+            } else {
+                $pesan = "Telah kedaluwarsa!";
+            }
 
             // Pancarkan Notifikasi Global!
             broadcast(new BatchExpiryAlert(
