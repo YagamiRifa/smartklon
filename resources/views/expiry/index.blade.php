@@ -72,7 +72,7 @@
         </div>
 
         <div class="detail-modal-body">
-            <form method="POST" action="{{ route('expiry.store') }}" id="form-add-batch">
+            <form action="{{ route('expiry.store') }}" method="POST" id="form-add-batch" onsubmit="submitManualBatch(event)">
                 @csrf
                 <div class="form-group mb-3" style="position: relative;">
                     <label class="form-label" for="search_product">PILIH PRODUK TARGET</label>
@@ -464,7 +464,42 @@ function toggleAddForm() {
 // ==============================================================
 // 1. MOCKUP LISTENER WEBSOCKET UNTUK RASPI
 // ==============================================================
-function addBatchLog(data) {
+// function addBatchLog(data) {
+//     const log = document.getElementById('batch-scan-log');
+//     const emp = document.getElementById('log-empty-state');
+//     if (emp) emp.remove();
+
+//     const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+//     const el = document.createElement('div');
+//     el.className = 'scan-log-item scan-log-item--in fade-in';
+//     el.innerHTML = `
+//         <div class="scan-log-indicator scan-log-dot--in"></div>
+//         <div class="scan-log-body">
+//             <span class="scan-log-name">Barcode: ${data.barcode}</span>
+//             <span class="scan-log-epc">Exp: ${data.expiry_date}</span>
+//         </div>
+//         <div class="scan-log-right">
+//             <span class="badge badge--success" style="font-size:10px">BATCH IN</span>
+//             <span class="scan-log-time">${time}</span>
+//         </div>`;
+
+//     log.insertBefore(el, log.firstChild);
+
+//     const items = log.querySelectorAll('.scan-log-item');
+//     if (items.length > 50) items[items.length - 1].remove();
+
+//     const pulse = document.getElementById('log-pulse');
+//     if (pulse) { pulse.style.transform = 'scale(1.6)'; setTimeout(() => pulse.style.transform = '', 300); }
+
+//     // Auto Reload setelah data raspi masuk
+//     setTimeout(() => {
+//         window.location.reload();
+//     }, 1500);
+// }
+
+// A. Fungsi Log HANYA untuk halaman Expiry ini
+function addBatchLog(data, isManual = false) {
     const log = document.getElementById('batch-scan-log');
     const emp = document.getElementById('log-empty-state');
     if (emp) emp.remove();
@@ -480,24 +515,49 @@ function addBatchLog(data) {
             <span class="scan-log-epc">Exp: ${data.expiry_date}</span>
         </div>
         <div class="scan-log-right">
-            <span class="badge badge--success" style="font-size:10px">BATCH IN</span>
+            <span class="badge badge--success" style="font-size:10px">${isManual ? 'MANUAL IN' : 'RASPI IN'}</span>
             <span class="scan-log-time">${time}</span>
         </div>`;
 
     log.insertBefore(el, log.firstChild);
-
     const items = log.querySelectorAll('.scan-log-item');
-    if (items.length > 50) items[items.length - 1].remove();
+    if (items.length > 10) items[items.length - 1].remove();
 
-    const pulse = document.getElementById('log-pulse');
-    if (pulse) { pulse.style.transform = 'scale(1.6)'; setTimeout(() => pulse.style.transform = '', 300); }
-
-    // Auto Reload setelah data raspi masuk
-    setTimeout(() => {
-        window.location.reload();
-    }, 1500);
+    setTimeout(() => window.location.reload(), 2000);
 }
 
+// B. Tangkap sinyal Global dari app.blade.php untuk menambah Log (Tanpa membuat Toast lagi)
+window.addEventListener("global-batch-scanned", (e) => {
+    addBatchLog({ barcode: e.detail.barcode, expiry_date: e.detail.expiry_date }, false);
+});
+
+// C. Form Manual Input (Panggil Toast Global secara manual)
+async function submitManualBatch(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+
+    try {
+        const response = await fetch(form.action, { method: 'POST', body: formData, headers: { 'Accept': 'application/json' } });
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            if (typeof closeAddBatchModal === 'function') closeAddBatchModal();
+            form.reset();
+
+            // Panggil fungsi pembuat Toast yang ada di app.blade.php
+            if (typeof showGlobalToast === 'function') {
+                showGlobalToast('Input Manual Berhasil!', `Batch (Barcode: ${result.data.barcode}) berhasil ditambah.`);
+            }
+
+            addBatchLog(result.data, true);
+        } else {
+            alert('Gagal: ' + (result.message || 'Periksa inputan.'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
 function clearScanLog() {
     document.getElementById('batch-scan-log').innerHTML = `
         <div class="realtime-empty" id="log-empty-state" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:24px 0; color:var(--grey-400);">
@@ -852,14 +912,10 @@ function closeEditProductModal(e) {
 
 /* ── Layout 2 Kolom ── */
 .stock-control-row {display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px;}
-.stock-control-panel, .stock-log-panel {
-    display: flex;
-    flex-direction: column;
-}
+.stock-control-panel, .stock-log-panel { display: flex; flex-direction: column;}
 .panel-divider { height:1px; background:var(--grey-100); margin:0; }
 
-@media (max-width: 900px) {
-    .stock-control-row { grid-template-columns: 1fr; }
+@media (max-width: 900px) { .stock-control-row { grid-template-columns: 1fr;}
 }
 
 /* Row button */
@@ -893,73 +949,22 @@ function closeEditProductModal(e) {
 .detail-modal-footer { display:flex;gap:8px;justify-content:flex-end;padding:12px 20px 20px;border-top:1px solid var(--grey-100); }
 
 /* ── Form Input ── */
-.form-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--grey-500);
-    text-transform: uppercase;
-    letter-spacing: .05em;
-    margin-bottom: 6px;
-    display: block;
-}
-.form-input, .form-control {
-    width: 100%;
-    border: 1px solid var(--grey-200);
-    border-radius: 8px;
-    font-size: 13px;
-    color: var(--grey-800);
-    background: #fff;
-    outline: none;
-    transition: border-color .15s;
-}
-.form-input:focus, .form-control:focus {
-    border-color: var(--primary-400);
-}
+.form-label { font-size: 11px;font-weight: 600;color: var(--grey-500);text-transform: uppercase;letter-spacing:.05em;margin-bottom: 6px;display: block;}
+.form-input, .form-control { width: 100%;border: 1px solid var(--grey-200);border-radius: 8px;font-size: 13px;color: var(--grey-800);background: #fff;outline: none;transition: border-color .15s;}
+.form-input:focus, .form-control:focus {border-color: var(--primary-400);}
 .form-grid--2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 #add-form-body .form-input { padding: 8px 12px; }
 #add-form-body .form-input::placeholder { color: var(--grey-400); }
 
 /* ── Tombol Expand ── */
-.expand-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--grey-500);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    transition: background 0.15s, color 0.15s;
-}
-.expand-btn:hover {
-    background: var(--grey-100);
-    color: var(--grey-700);
-}
-.expand-icon {
-    transition: transform 0.2s ease-in-out;
-}
+.expand-btn { background: none;border: none;cursor: pointer;color: var(--grey-500);display: flex;align-items: center;justify-content: center;width: 24px;height: 24px;border-radius: 6px;transition: background 0.15s, color 0.15s;}
+.expand-btn:hover { background: var(--grey-100);color: var(--grey-700);}
+.expand-icon { transition: transform 0.2s ease-in-out;}
 
 /* ── Tag / Chip Batch ── */
-.tag-grid {
-    padding: 12px 16px;
-}
-.tag-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-.tag-chip {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    border: 1px solid;
-    background: #fff;
-    font-size: 12px;
-}
+.tag-grid { padding: 12px 16px;}
+.tag-chips { display: flex;flex-wrap: wrap;gap: 8px;}
+.tag-chip {display: flex;align-items: center;gap: 8px;padding: 6px 10px;border-radius: 8px;border: 1px solid;background: #fff;font-size: 12px;}
 .tag-chip--in { border-color: #bbf7d0; }
 .tag-chip--warning { border-color: #FDE68A; }
 .tag-chip--out { border-color: #fecaca; }
@@ -967,28 +972,8 @@ function closeEditProductModal(e) {
 .tag-date { color: var(--grey-500); font-size: 11px; }
 
 /* ── Tombol Hapus Batch (Silang) ── */
-.btn-delete-batch {
-    position: absolute;
-    right: 4px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: var(--grey-400);
-    font-size: 10px;
-    cursor: pointer;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.2s;
-}
-.btn-delete-batch:hover {
-    background: var(--red-100);
-    color: var(--red-600);
-}
+.btn-delete-batch { position: absolute;right: 4px;top: 50%;transform: translateY(-50%);background: none;border: none;color: var(--grey-400);font-size: 10px;cursor: pointer;width: 20px;height: 20px;display: flex;align-items: center;justify-content: center;border-radius: 50%;transition: all 0.2s;}
+.btn-delete-batch:hover { background: var(--red-100);color: var(--red-600);}
 
 @keyframes spin { 100% { transform:rotate(360deg); } }
 

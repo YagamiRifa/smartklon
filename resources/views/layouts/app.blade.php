@@ -285,6 +285,45 @@ async function clearNotifications() {
             console.error('Gagal membersihkan notifikasi:', error);
         }
     }
+
+    //---------------------------------- Real-time Updates dengan Laravel Echo ----------------------------------
+    // 1. Fungsi pembuat Toast agar bisa dipanggil dari mana saja
+    function showGlobalToast(title, message) {
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.style.cssText = 'position: fixed; top: 70px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;';
+            document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement('div');
+        toast.style.cssText = 'background: white; border-left: 4px solid #10B981; padding: 14px 18px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 12px; transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); min-width: 250px;';
+        toast.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color: #10B981; flex-shrink: 0;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div>
+                <strong style="color: #111827; font-size: 13px; display: block; margin-bottom: 2px;">${title}</strong>
+                <span style="color: #6B7280; font-size: 12px;">${message}</span>
+            </div>
+        `;
+        toastContainer.appendChild(toast);
+        setTimeout(() => toast.style.transform = 'translateX(0)', 10);
+        setTimeout(() => { toast.style.transform = 'translateX(120%)'; setTimeout(() => toast.remove(), 300); }, 5000); // Hilang otomatis setelah 5 detik
+    }
+
+    // 2. Pendengar Reverb Global untuk Raspi (Scanner Expiry)
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.Echo) {
+            window.Echo.channel('scanner-channel')
+                .listen('.batch.scanned', (e) => {
+                    // Munculkan Toast di halaman APA PUN yang sedang dibuka
+                    showGlobalToast('Scan Raspi Berhasil!', `Data masuk (Barcode: ${e.barcode})`);
+
+                    // Sebarkan sinyal khusus ke halaman (berguna untuk update log di halaman Expiry)
+                    window.dispatchEvent(new CustomEvent("global-batch-scanned", { detail: e }));
+                });
+        }
+    });
 </script>
 
 <style>

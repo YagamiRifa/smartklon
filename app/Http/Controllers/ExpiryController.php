@@ -43,27 +43,75 @@ class ExpiryController extends Controller
         $warningBatch = $items->sum('warning_count');
         $expiredBatch = $items->sum('expired_count');
 
-        return view('expiry.index', compact('items', 'totalBatch', 'safeBatch', 'warningBatch', 'expiredBatch'));
+        // Ambil 10 batch terbaru yang baru saja masuk ke database
+        $recentLogs = BatchExpiry::with('item') // Memuat relasi tabel items untuk mengambil barcode
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get();
+
+        // Pastikan 'recentLogs' ditambahkan ke dalam compact()
+        return view('expiry.index', compact(
+            'items',
+            'totalBatch',
+            'safeBatch',
+            'warningBatch',
+            'expiredBatch',
+            'recentLogs'
+        ));
+
+        // return view('expiry.index', compact('items', 'totalBatch', 'safeBatch', 'warningBatch', 'expiredBatch'));
     }
 
     /**
      * Menyimpan Batch baru (Bisa via Manual / API dari Raspi nanti)
      */
+    // public function store(Request $request)
+    // {
+    //     $request->validate([
+    //         'item_id'     => 'required|exists:items,id',
+    //         'expiry_date' => 'required|date',
+    //     ]);
+
+    //     BatchExpiry::create([
+    //         'item_id'     => $request->item_id,
+    //         'expiry_date' => $request->expiry_date,
+    //     ]);
+
+    //     return redirect()->back()->with('success', 'Batch baru berhasil didaftarkan.');
+    // }
+
+    /**
+     * Menyimpan data batch baru dari input manual (Web)
+     */
     public function store(Request $request)
     {
         $request->validate([
-            'item_id'     => 'required|exists:items,id',
+            'item_id' => 'required|exists:items,id',
             'expiry_date' => 'required|date',
         ]);
 
-        BatchExpiry::create([
-            'item_id'     => $request->item_id,
+        $batch = BatchExpiry::create([
+            'item_id' => $request->item_id,
             'expiry_date' => $request->expiry_date,
         ]);
 
-        return redirect()->back()->with('success', 'Batch baru berhasil didaftarkan.');
-    }
+        $item = Item::find($request->item_id);
 
+        // Jika request datang dari AJAX (JavaScript Fetch)
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Batch item ' . $item->nama_barang . ' berhasil di tambah.',
+                'data' => [
+                    'barcode' => $item->barcode ?? 'Tanpa Barcode',
+                    'expiry_date' => Carbon::parse($batch->expiry_date)->format('d/m/Y')
+                ]
+            ]);
+        }
+
+        // Fallback jika tidak menggunakan AJAX
+        return redirect()->back()->with('success', 'Batch berhasil ditambahkan.');
+    }
     /**
      * API: Mengambil daftar batch per item untuk fitur "Expand" pada tabel
      */
