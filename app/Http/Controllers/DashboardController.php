@@ -7,7 +7,7 @@ use App\Models\Item;
 use App\Models\Tag;
 use App\Models\Transaction;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
+// use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -21,7 +21,7 @@ class DashboardController extends Controller
         $totalOutOfStock  = Tag::where('status', 'out_of_stock')->count();
         $totalTags        = Tag::count();
 
-        $today = today();
+        $today = Carbon::today();
         $stockInToday  = Transaction::where('type', 'in')->whereDate('created_at', $today)->count();
         $stockOutToday = Transaction::where('type', 'out')->whereDate('created_at', $today)->count();
 

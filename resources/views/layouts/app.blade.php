@@ -131,35 +131,32 @@
                     <span class="indicator-text">Real-time</span>
                 </div>
                 <div class="topbar-time" id="topbar-time"></div>
+
                 {{-- ===== LONCENG NOTIFIKASI ===== --}}
                 <div class="topbar-notification" id="notification-wrapper">
                     <button class="notification-btn" id="notification-btn" aria-label="Notifikasi">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                            {{-- Hitung total gabungan notifikasi --}}
+
                         @php
                             $totalNotifikasi = ($globalExpiredCount ?? 0) + ($globalWarningCount ?? 0);
                         @endphp
 
-                        {{-- Tampilkan lencana angka jika total notifikasi lebih dari 0 --}}
-                        @if($totalNotifikasi > 0)
-                            {{-- Menggunakan warna merah jika ada produk expired, selain itu warna amber --}}
-                            <span class="notification-badge {{ ($globalExpiredCount ?? 0) > 0 ? 'notification-badge--red' : 'notification-badge--amber' }}">
-                                {{ $totalNotifikasi }}
-                            </span>
-                        @endif
+                        {{-- Beri ID 'notif-counter' dan selalu render elemennya, sembunyikan jika 0 --}}
+                        <span id="notif-counter" class="notification-badge {{ ($globalExpiredCount ?? 0) > 0 ? 'notification-badge--red' : 'notification-badge--amber' }}" style="{{ $totalNotifikasi == 0 ? 'display: none;' : '' }}">
+                            {{ $totalNotifikasi }}
+                        </span>
                     </button>
 
                     {{-- Isi Dropdown Notifikasi --}}
                     <div class="notification-dropdown" id="notification-dropdown">
                         <div class="notification-header" style="display: flex; justify-content: space-between; align-items: center;">
                             <h3 class="notification-title">Notifikasi Sistem</h3>
-
-                            {{-- Tombol Bersihkan hanya muncul jika ada notifikasi aktif --}}
-                            @if((($globalExpiredCount ?? 0) + ($globalWarningCount ?? 0)) > 0)
-                                <button onclick="clearNotifications()" style="background: none; border: none; color: var(--primary-600); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: background 0.15s;">Bersihkan</button>
-                            @endif
+                            {{-- Tombol bersihkan --}}
+                            <button id="btn-clear-notif" onclick="clearNotifications()" style="{{ $totalNotifikasi == 0 ? 'display: none;' : '' }} background: none; border: none; color: var(--primary-600); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: background 0.15s;">Bersihkan</button>
                         </div>
-                        <div class="notification-body">
+
+                        {{-- Beri ID 'notif-list' pada wadah daftarnya --}}
+                        <div class="notification-body" id="notif-list">
                             @if(($globalExpiredCount ?? 0) > 0)
                                 <a href="{{ route('expiry.index') }}" class="notification-item notification-item--red">
                                     <div class="notification-icon">
@@ -185,7 +182,7 @@
                             @endif
 
                             @if(($globalExpiredCount ?? 0) == 0 && ($globalWarningCount ?? 0) == 0)
-                                <div class="notification-empty">
+                                <div class="notification-empty" id="notif-empty" style="{{ $totalNotifikasi > 0 ? 'display: none;' : '' }}">
                                     Belum ada notifikasi baru.
                                 </div>
                             @endif
@@ -288,7 +285,8 @@ async function clearNotifications() {
 
     //---------------------------------- Real-time Updates dengan Laravel Echo ----------------------------------
     // 1. Fungsi pembuat Toast agar bisa dipanggil dari mana saja
-    function showGlobalToast(title, message) {
+    // 1. Fungsi pembuat Toast agar bisa dipanggil dari mana saja
+    function showGlobalToast(title, message, type = 'success') {
         let toastContainer = document.getElementById('toast-container');
         if (!toastContainer) {
             toastContainer = document.createElement('div');
@@ -297,10 +295,22 @@ async function clearNotifications() {
             document.body.appendChild(toastContainer);
         }
 
+        // Tentukan Tema Warna & Ikon berdasarkan tipe
+        let themeColor = '#10B981'; // Default: Hijau (Sukses)
+        let svgIcon = '<path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+
+        if (type === 'expired') {
+            themeColor = '#DC2626'; // Merah
+            svgIcon = '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>';
+        } else if (type === 'warning') {
+            themeColor = '#F59E0B'; // Kuning/Amber
+            svgIcon = '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2.5"/>';
+        }
+
         const toast = document.createElement('div');
-        toast.style.cssText = 'background: white; border-left: 4px solid #10B981; padding: 14px 18px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 12px; transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); min-width: 250px;';
+        toast.style.cssText = `background: white; border-left: 4px solid ${themeColor}; padding: 14px 18px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 12px; transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); min-width: 250px;`;
         toast.innerHTML = `
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color: #10B981; flex-shrink: 0;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color: ${themeColor}; flex-shrink: 0;">${svgIcon}</svg>
             <div>
                 <strong style="color: #111827; font-size: 13px; display: block; margin-bottom: 2px;">${title}</strong>
                 <span style="color: #6B7280; font-size: 12px;">${message}</span>
@@ -308,22 +318,8 @@ async function clearNotifications() {
         `;
         toastContainer.appendChild(toast);
         setTimeout(() => toast.style.transform = 'translateX(0)', 10);
-        setTimeout(() => { toast.style.transform = 'translateX(120%)'; setTimeout(() => toast.remove(), 300); }, 5000); // Hilang otomatis setelah 5 detik
+        setTimeout(() => { toast.style.transform = 'translateX(120%)'; setTimeout(() => toast.remove(), 300); }, 5000);
     }
-
-    // // 2. Pendengar Reverb Global untuk Raspi (Scanner Expiry)
-    // document.addEventListener('DOMContentLoaded', function () {
-    //     if (window.Echo) {
-    //         window.Echo.channel('scanner-channel')
-    //             .listen('.batch.scanned', (e) => {
-    //                 // Munculkan Toast di halaman APA PUN yang sedang dibuka
-    //                 showGlobalToast('Scan Raspi Berhasil!', `Data masuk (Barcode: ${e.barcode})`);
-
-    //                 // Sebarkan sinyal khusus ke halaman (berguna untuk update log di halaman Expiry)
-    //                 window.dispatchEvent(new CustomEvent("global-batch-scanned", { detail: e }));
-    //             });
-    //     }
-    // });
 
     // 2. Pendengar Reverb Global untuk Raspi (Scanner Expiry)
     // Menggunakan interval untuk menunggu Vite selesai memuat app.js (Echo)
@@ -331,13 +327,73 @@ async function clearNotifications() {
         if (window.Echo) {
             clearInterval(checkEcho); // Hentikan pengecekan setelah Echo siap
 
+            // A. PENDENGAR UNTUK SCANNER RFID (Tetap dipertahankan)
             window.Echo.channel('scanner-channel')
                 .listen('.batch.scanned', (e) => {
-                    // Munculkan Toast di halaman APA PUN yang sedang dibuka
                     showGlobalToast('Scan Berhasil!', `Batch ${e.nama_barang} berhasil ditambah.`);
-
-                    // Sebarkan sinyal khusus ke halaman (berguna untuk update log di halaman Expiry)
                     window.dispatchEvent(new CustomEvent("global-batch-scanned", { detail: e }));
+                });
+
+            // B. PENDENGAR UNTUK ALARM KEDALUWARSA (BARU!)
+            window.Echo.channel('global-alerts')
+                .listen('BatchExpiryAlert', (e) => {
+
+                    // 1. Tambah angka di lonceng
+                    const counterEl = document.getElementById('notif-counter');
+                    if (counterEl) {
+                        let currentCount = parseInt(counterEl.innerText || 0);
+                        counterEl.innerText = currentCount + 1;
+                        counterEl.style.display = 'inline-block';
+
+                        // Ubah lencana jadi merah jika expired
+                        if (e.status === 'expired') {
+                            counterEl.classList.remove('notification-badge--amber');
+                            counterEl.classList.add('notification-badge--red');
+                        }
+
+                        // Beri efek denyut animasi
+                        counterEl.classList.add('pulse-animation');
+                        setTimeout(() => counterEl.classList.remove('pulse-animation'), 1000);
+                    }
+
+                    // 2. Tampilkan tombol "Bersihkan"
+                    const btnClear = document.getElementById('btn-clear-notif');
+                    if (btnClear) btnClear.style.display = 'inline-block';
+
+                    // 3. Masukkan pesan ke dalam list dropdown
+                    const listEl = document.getElementById('notif-list');
+                    const emptyEl = document.getElementById('notif-empty');
+
+                    if (listEl) {
+                        if (emptyEl) emptyEl.style.display = 'none';
+
+                        // Buat link elemen baru
+                        const notifItem = document.createElement('a');
+                        notifItem.href = "{{ route('expiry.index') }}";
+                        notifItem.className = e.status === 'expired' ? 'notification-item notification-item--red' : 'notification-item notification-item--amber';
+
+                        const iconSvg = e.status === 'expired'
+                            ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/></svg>'
+                            : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2.5"/></svg>';
+
+                        notifItem.innerHTML = `
+                            <div class="notification-icon">${iconSvg}</div>
+                            <div class="notification-text">
+                                <strong>${e.namaBarang} (${e.batchCode})</strong><br>
+                                ${e.pesan}
+                            </div>
+                        `;
+
+                        // Sisipkan pesan di baris paling atas
+                        listEl.prepend(notifItem);
+                    }
+
+                    // 4. Munculkan juga Toast peringatan agar lebih heboh
+                    showGlobalToast(
+                        e.status === 'expired' ? '🚨 BARANG EXPIRED!' : '⚠️ MASA KRITIS',
+                        `${e.namaBarang} - ${e.pesan}`,
+                        e.status
+                    );
                 });
         }
     }, 150); // Sistem akan mengecek ketersediaan Echo setiap 150 milidetik
@@ -358,14 +414,27 @@ async function clearNotifications() {
 .notification-header { padding: 14px 16px; border-bottom: 1px solid var(--grey-100); }
 .notification-title { font-size: 13px; font-weight: 700; color: var(--grey-800); margin: 0; }
 .notification-body { max-height: 300px; overflow-y: auto; }
-.notification-item { display: flex; gap: 12px; padding: 14px 16px; text-decoration: none; border-bottom: 1px solid var(--grey-50); transition: background 0.2s; }
+.notification-item { display: flex;gap: 12px;padding: 14px 16px;text-decoration: none;border-bottom: 1px solid var(--grey-50);transition: background 0.2s;align-items: flex-start; }
 .notification-item:hover { background: var(--grey-50); }
-.notification-item--red .notification-icon { color: #DC2626; background: #FEE2E2; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.notification-item--amber .notification-icon { color: #D97706; background: #FEF3C7; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+/* Gabungkan properti bentuk agar tidak berulang */
+.notification-item--red .notification-icon,
+.notification-item--amber .notification-icon {width: 32px;height: 32px;border-radius: 50%;display: flex;align-items: center;justify-content: center;flex-shrink: 0;}
+
+.notification-item--red .notification-icon {color: #DC2626;background: #FEE2E2;}
+.notification-item--amber .notification-icon {color: #D97706;background: #FEF3C7;}
 .notification-text { font-size: 12px; color: var(--grey-500); line-height: 1.4; }
 .notification-text strong { color: var(--grey-800); font-size: 13px; }
 .notification-empty { padding: 24px 16px; text-align: center; font-size: 12px; color: var(--grey-400); }
 
+/* ── Animasi Denyut Lonceng ── */
+@keyframes pulse-ring {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+    70% { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+.pulse-animation {
+    animation: pulse-ring 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
 .badge--amber { background:#FFFBEB; color:#F59E0B; border:1px solid #FDE68A; }
 </style>

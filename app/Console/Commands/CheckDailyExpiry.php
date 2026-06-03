@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Events\BatchExpiryAlert;
 use App\Events\BatchScanned;
 use App\Models\BatchExpiry;
 use Carbon\Carbon;
@@ -23,29 +24,40 @@ class CheckDailyExpiry extends Command
     public function handle()
     {
         $today = Carbon::today();
+        $warningDate = Carbon::today()->addDays(14); // Tetapkan batas mendekati expired (H-14)
 
-        // Cari barang yang TEPAT kedaluwarsa hari ini (atau H-14 hari ini)
+        // Cari barang yang TEPAT kedaluwarsa hari ini ATAU TEPAT H-14 dari sekarang
         $newlyExpired = BatchExpiry::with('item')
-            ->whereDate('expiry_date', $today)
+            ->where(function ($query) use ($today, $warningDate) {
+                $query->whereDate('expiry_date', $today)
+                    ->orWhereDate('expiry_date', $warningDate);
+            })
             ->get();
 
         if ($newlyExpired->isEmpty()) {
-            $this->info('Tidak ada barang baru yang expired hari ini.');
+            $this->info('Tidak ada barang baru yang expired atau mendekati expired hari ini.');
             return;
         }
 
         // Jika ada, pancarkan (broadcast) Event Reverb untuk setiap barang!
         foreach ($newlyExpired as $batch) {
-            // Kita memalsukan seolah-olah sistem melakukan "scan"
-            // agar tabel dashboard dan lonceng di web langsung update!
-            broadcast(new BatchScanned(
+            // Kita parse tanggalnya agar aman saat dibandingkan
+            $expiryDate = Carbon::parse($batch->expiry_date)->startOfDay();
+
+            // Tentukan status: jika tanggal kedaluwarsa sama dengan hari ini (atau kelewatan) = expired
+            // Jika lebih dari hari ini (yaitu H-14) = warning
+            $status = $expiryDate->lessThanOrEqualTo($today) ? 'expired' : 'warning';
+            $pesan = $status === 'expired' ? 'Telah kedaluwarsa hari ini!' : 'Memasuki masa kritis (H-14)!';
+
+            // Pancarkan Notifikasi Global!
+            broadcast(new BatchExpiryAlert(
                 $batch->batch_code,
-                'out', // anggap status peringatan
                 $batch->item->nama_barang,
-                $batch->item->kode_barang
+                $status,
+                $pesan
             ));
 
-            $this->info("Notifikasi Reverb dikirim untuk: {$batch->item->nama_barang}");
+            $this->info("Alarm Global dikirim untuk: {$batch->item->nama_barang} ({$status})");
         }
     }
 }
