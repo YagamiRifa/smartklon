@@ -2,6 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Models\User;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\ExpiryDatabaseNotification;
 use App\Events\BatchExpiryAlert;
 use App\Events\BatchScanned;
 use App\Models\BatchExpiry;
@@ -57,6 +60,16 @@ class CheckDailyExpiry extends Command
             broadcast(new BatchExpiryAlert(
                 $batch->batch_code,
                 $batch->item->nama_barang,
+                $status,
+                $pesan
+            ));
+            // Ambil semua user (Admin)
+            $admins = User::all();
+
+            // Simpan riwayat notifikasi ke Database untuk semua admin
+            Notification::send($admins, new ExpiryDatabaseNotification(
+                $batch->batch_code ?? '-',
+                $item->nama_barang ?? 'Produk Tidak Diketahui',
                 $status,
                 $pesan
             ));

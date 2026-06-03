@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpiryController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ScannerStateController;
 use App\Http\Controllers\StockController;
 use Illuminate\Support\Facades\Route;
@@ -39,9 +40,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/api/batches/{id}', [ExpiryController::class, 'destroyBatch']);
 
     // Notification Management
-    Route::post('/notifications/clear', function () {
-        // Menyimpan timestamp pemicu tombol bersih-bersih ke dalam session user
-        session(['notifications_cleared_at' => now()]);
-        return response()->json(['success' => true]);
-    })->name('notifications.clear');
+
+    // Rute khusus untuk membersihkan notifikasi (diakses via AJAX)
+    Route::post('/notifications/clear', [NotificationController::class, 'clear'])
+        ->name('notifications.clear')
+        ->middleware('auth'); // Wajib login agar auth()->user() tidak error
 });

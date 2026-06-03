@@ -13,6 +13,11 @@
     @stack('styles')
 </head>
 <body>
+@php
+    // Ambil semua notifikasi yang belum dibaca milik user yang sedang login
+    $unreadNotifs = auth()->user()->unreadNotifications;
+    $totalNotifikasi = $unreadNotifs->count();
+@endphp
 <div class="app-shell">
 
     {{-- ===== SIDEBAR ===== --}}
@@ -133,8 +138,7 @@
                 <div class="topbar-time" id="topbar-time"></div>
 
                 {{-- ===== LONCENG NOTIFIKASI ===== --}}
-                {{-- ===== LONCENG NOTIFIKASI ===== --}}
-                <div class="topbar-notification" id="notification-wrapper">
+                                <div class="topbar-notification" id="notification-wrapper">
                     <button class="notification-btn" id="notification-btn" aria-label="Notifikasi">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
 
@@ -159,31 +163,31 @@
 
                         {{-- PERBAIKAN: Pastikan ID wadah ini terpasang sempurna --}}
                         <div class="notification-body" id="notif-list">
-                            @if(($globalExpiredCount ?? 0) > 0)
-                                <a href="{{ route('expiry.index') }}" class="notification-item notification-item--red">
+                            {{-- Looping data dari Database --}}
+                            @foreach($unreadNotifs as $notif)
+                                @php
+                                    $data = $notif->data;
+                                    $isExpired = $data['status'] === 'expired';
+                                @endphp
+
+                                <a href="{{ route('expiry.index') }}" class="notification-item {{ $isExpired ? 'notification-item--red' : 'notification-item--amber' }}">
                                     <div class="notification-icon">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+                                        @if($isExpired)
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+                                        @else
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2.5"/></svg>
+                                        @endif
                                     </div>
                                     <div class="notification-text">
-                                        <strong>{{ $globalExpiredCount }} Batch Telah Kedaluwarsa!</strong><br>
-                                        Segera periksa dan tarik produk dari rak.
+                                        <strong>Peringatan: {{ $data['nama_barang'] }} ({{ $data['batch_code'] }})</strong><br>
+                                        {{ $data['pesan'] }}
+                                        <div style="font-size: 10px; margin-top: 4px; color: var(--grey-400);">
+                                            {{ $notif->created_at->diffForHumans() }}
+                                        </div>
                                     </div>
                                 </a>
-                            @endif
+                            @endforeach
 
-                            @if(($globalWarningCount ?? 0) > 0)
-                                <a href="{{ route('expiry.index') }}" class="notification-item notification-item--amber">
-                                    <div class="notification-icon">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2.5"/></svg>
-                                    </div>
-                                    <div class="notification-text">
-                                        <strong>{{ $globalWarningCount }} Batch Mendekati Kedaluwarsa</strong><br>
-                                        Memasuki periode H-14.
-                                    </div>
-                                </a>
-                            @endif
-
-                            {{-- PERBAIKAN: Beri ID pada state kosong --}}
                             <div class="notification-empty" id="notif-empty" style="{{ $totalNotifikasi > 0 ? 'display: none;' : '' }}">
                                 Belum ada notifikasi baru.
                             </div>
