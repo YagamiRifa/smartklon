@@ -55,43 +55,7 @@ class ExpiryController extends Controller
 
         // Pastikan 'recentLogs' ditambahkan ke dalam compact()
         return view('expiry.index', compact('items', 'totalBatch', 'safeBatch', 'warningBatch', 'expiredBatch', 'recentLogs'));
-
-        // return view('expiry.index', compact('items', 'totalBatch', 'safeBatch', 'warningBatch', 'expiredBatch'));
     }
-
-    /**
-     * Menyimpan data batch baru dari input manual (Web)
-     */
-    // public function store(Request $request)
-    // {
-    //     $request->validate([
-    //         'item_id' => 'required|exists:items,id',
-    //         'expiry_date' => 'required|date',
-    //     ]);
-
-    //     $batch = BatchExpiry::create([
-    //         'item_id' => $request->item_id,
-    //         'expiry_date' => $request->expiry_date,
-    //     ]);
-
-    //     $item = Item::find($request->item_id);
-
-    //     // Jika request datang dari AJAX (JavaScript Fetch)
-    //     if ($request->wantsJson() || $request->ajax()) {
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Batch item ' . $item->nama_barang . ' berhasil di tambah.',
-    //             'data' => [
-    //                 'barcode' => $item->barcode ?? 'Tanpa Barcode',
-    //                 'nama_barang' => $item->nama_barang, // Tambahan baru
-    //                 'expiry_date' => Carbon::parse($batch->expiry_date)->format('d/m/Y')
-    //             ]
-    //         ]);
-    //     }
-
-    //     // Fallback jika tidak menggunakan AJAX
-    //     return redirect()->back()->with('success', 'Batch berhasil ditambahkan.');
-    // }
 
     /**
      * Menyimpan data batch baru dari input manual (Web)
