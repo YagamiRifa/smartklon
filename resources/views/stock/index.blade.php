@@ -288,6 +288,11 @@
                         @error('kode_barang')<span class="form-error">{{ $message }}</span>@enderror
                     </div>
                     <div class="form-group">
+                        <label class="form-label" for="barcode">Barcode</label>
+                        <input type="text" id="barcode" name="barcode" class="form-input {{ $errors->has('barcode') ? 'form-input--error' : '' }}" placeholder="01234567###" value="{{ old('barcode') }}" required>
+                        @error('barcode')<span class="form-error">{{ $message }}</span>@enderror
+                    </div>
+                    <div class="form-group">
                         <label class="form-label" for="nama_barang">Nama Barang</label>
                         <input type="text" id="nama_barang" name="nama_barang" class="form-input {{ $errors->has('nama_barang') ? 'form-input--error' : '' }}" placeholder="Nama produk" value="{{ old('nama_barang') }}" required>
                         @error('nama_barang')<span class="form-error">{{ $message }}</span>@enderror
