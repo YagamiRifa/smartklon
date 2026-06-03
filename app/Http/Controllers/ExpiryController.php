@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Events\BatchExpiryAlert;
 use App\Models\BatchExpiry;
 use App\Models\Item;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class ExpiryController extends Controller
 {
@@ -59,21 +60,37 @@ class ExpiryController extends Controller
     }
 
     /**
-     * Menyimpan Batch baru (Bisa via Manual / API dari Raspi nanti)
+     * Menyimpan data batch baru dari input manual (Web)
      */
     // public function store(Request $request)
     // {
     //     $request->validate([
-    //         'item_id'     => 'required|exists:items,id',
+    //         'item_id' => 'required|exists:items,id',
     //         'expiry_date' => 'required|date',
     //     ]);
 
-    //     BatchExpiry::create([
-    //         'item_id'     => $request->item_id,
+    //     $batch = BatchExpiry::create([
+    //         'item_id' => $request->item_id,
     //         'expiry_date' => $request->expiry_date,
     //     ]);
 
-    //     return redirect()->back()->with('success', 'Batch baru berhasil didaftarkan.');
+    //     $item = Item::find($request->item_id);
+
+    //     // Jika request datang dari AJAX (JavaScript Fetch)
+    //     if ($request->wantsJson() || $request->ajax()) {
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Batch item ' . $item->nama_barang . ' berhasil di tambah.',
+    //             'data' => [
+    //                 'barcode' => $item->barcode ?? 'Tanpa Barcode',
+    //                 'nama_barang' => $item->nama_barang, // Tambahan baru
+    //                 'expiry_date' => Carbon::parse($batch->expiry_date)->format('d/m/Y')
+    //             ]
+    //         ]);
+    //     }
+
+    //     // Fallback jika tidak menggunakan AJAX
+    //     return redirect()->back()->with('success', 'Batch berhasil ditambahkan.');
     // }
 
     /**
@@ -93,6 +110,36 @@ class ExpiryController extends Controller
 
         $item = Item::find($request->item_id);
 
+        // === 🚀 AWAL TAMBAHAN LOGIKA PENGECEKAN INSTAN ===
+        $batch->setRelation('item', $item); // Hubungkan data item ke batch agar terbaca di event
+
+        $today = Carbon::today();
+        $expiryDate = Carbon::parse($batch->expiry_date)->startOfDay();
+        $warningLimit = $today->copy()->addDays(14); // Batas H-14
+
+        // Cek apakah tanggal yang diinput mepet atau sudah lewat
+        if ($expiryDate->lessThanOrEqualTo($warningLimit)) {
+
+            $status = $expiryDate->lessThanOrEqualTo($today) ? 'expired' : 'warning';
+
+            if ($status === 'warning') {
+                $sisaHari = $today->diffInDays($expiryDate);
+                $pesan = "Baru diinput: Memasuki masa kritis (Sisa {$sisaHari} hari)!";
+            } else {
+                $pesan = "Baru diinput: Barang ini sudah kedaluwarsa!";
+            }
+
+            // Tembakkan Notifikasi Global secara Real-time!
+            broadcast(new BatchExpiryAlert(
+                $batch->batch_code ?? '-', // Jika batch_code otomatis di-generate DB
+                $item->nama_barang,
+                $status,
+                $pesan
+            ));
+        }
+        // === 🚀 AKHIR TAMBAHAN LOGIKA PENGECEKAN INSTAN ===
+
+
         // Jika request datang dari AJAX (JavaScript Fetch)
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -109,6 +156,7 @@ class ExpiryController extends Controller
         // Fallback jika tidak menggunakan AJAX
         return redirect()->back()->with('success', 'Batch berhasil ditambahkan.');
     }
+
     /**
      * API: Mengambil daftar batch per item untuk fitur "Expand" pada tabel
      */
