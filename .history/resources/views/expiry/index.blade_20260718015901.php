@@ -456,6 +456,12 @@
                         <button class="btn-row-icon btn-row-icon--edit" onclick="openEditProductModal({{ $item->id }})" title="Edit Katalog Produk">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </button>
+                        {{-- TOMBOL DELETE BATCH BARU ── --}}
+                        <button class="btn-row-icon btn-row-icon--detail" style="width:24px; height:24px; font-size:11px; color:var(--red-500);"
+                                onclick="deleteBatch(${b.id}, ${itemId})"
+                                title="Hapus Batch">
+                            🗑️
+                        </button>
                     </td>
 
                 </tr>
@@ -943,12 +949,6 @@ async function openExpiryDetailModal(itemId) {
                                 title="Edit Tanggal">
                             ✏️
                         </button>
-                        {{-- TOMBOL DELETE BATCH BARU ── --}}
-                        <button class="btn-row-icon btn-row-icon--detail" style="width:24px; height:24px; font-size:11px; color:var(--red-500);"
-                                onclick="deleteBatch(${b.id}, ${itemId})"
-                                title="Hapus Batch">
-                            🗑️
-                        </button>
                     </td>
                 </tr>
             `;
@@ -1177,7 +1177,6 @@ function closeEditProductModal(e) {
 .btn-row-icon--detail:hover { background:var(--primary-50);border-color:var(--primary-300); }
 .btn-row-icon--edit { color:var(--amber-500); }
 .btn-row-icon--edit:hover { background:var(--amber-50);border-color:var(--amber-300); }
-.btn-row-icon--detail:hover[title="Hapus Batch"] {background: #fef2f2; border-color: #fca5a5;}
 
 /* ── Detail Modal Expiry ── */
 .detail-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9990;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .25s; }

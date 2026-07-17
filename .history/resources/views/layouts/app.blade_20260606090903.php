@@ -171,7 +171,7 @@
                                         @endif
                                     </div>
                                     <div class="notification-text">
-                                        <strong>Peringatan: {{ $data['nama_barang'] ?? ($data['namaBarang'] ?? 'Produk Tidak Ditemukan') }} ({{ $data['batch_code'] ?? ($data['batchCode'] ?? '-') }})</strong><br>
+                                        <strong>Peringatan: {{ $data['nama_barang'] ?? 'Produk' }} ({{ $data['batch_code'] ?? '-' }})</strong><br>
                                         {{ $data['pesan'] ?? '' }}
                                         <div style="font-size: 10px; margin-top: 4px; color: var(--grey-400);">
                                             {{ $notif->created_at->diffForHumans() }}

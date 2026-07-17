@@ -943,12 +943,6 @@ async function openExpiryDetailModal(itemId) {
                                 title="Edit Tanggal">
                             ✏️
                         </button>
-                        {{-- TOMBOL DELETE BATCH BARU ── --}}
-                        <button class="btn-row-icon btn-row-icon--detail" style="width:24px; height:24px; font-size:11px; color:var(--red-500);"
-                                onclick="deleteBatch(${b.id}, ${itemId})"
-                                title="Hapus Batch">
-                            🗑️
-                        </button>
                     </td>
                 </tr>
             `;
@@ -1177,7 +1171,6 @@ function closeEditProductModal(e) {
 .btn-row-icon--detail:hover { background:var(--primary-50);border-color:var(--primary-300); }
 .btn-row-icon--edit { color:var(--amber-500); }
 .btn-row-icon--edit:hover { background:var(--amber-50);border-color:var(--amber-300); }
-.btn-row-icon--detail:hover[title="Hapus Batch"] {background: #fef2f2; border-color: #fca5a5;}
 
 /* ── Detail Modal Expiry ── */
 .detail-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9990;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .25s; }

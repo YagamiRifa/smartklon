@@ -27,9 +27,9 @@ class CheckDailyExpiry extends Command
     public function handle()
     {
         $today = Carbon::today();
-        $warningLimit = Carbon::today()->addDays(7); // Batas maksimal H-7
+        $warningLimit = Carbon::today()->addDays(14); // Batas maksimal H-14
 
-        // Ambil SEMUA barang yang tanggal kedaluwarsanya <= H-7
+        // Ambil SEMUA barang yang tanggal kedaluwarsanya <= H-14
         // (Ini mencakup yang expired dan yang mendekati expired)
         $kritis = BatchExpiry::with('item')
             ->whereDate('expiry_date', '<=', $warningLimit)
@@ -45,7 +45,7 @@ class CheckDailyExpiry extends Command
             $expiryDate = Carbon::parse($batch->expiry_date)->startOfDay();
 
             // Jika tanggalnya lewat atau sama dengan hari ini = expired
-            // Jika masih di atas hari ini (tapi di bawah H-7) = warning
+            // Jika masih di atas hari ini (tapi di bawah H-14) = warning
             $status = $expiryDate->lessThanOrEqualTo($today) ? 'expired' : 'warning';
 
             // Hitung sisa hari untuk ditampilkan di pesan
@@ -69,7 +69,7 @@ class CheckDailyExpiry extends Command
             // Simpan riwayat notifikasi ke Database untuk semua admin
             Notification::send($admins, new ExpiryDatabaseNotification(
                 $batch->batch_code ?? '-',
-                $batch->item->nama_barang ?? 'Produk Tidak Diketahui',
+                $item->nama_barang ?? 'Produk Tidak Diketahui',
                 $status,
                 $pesan
             ));

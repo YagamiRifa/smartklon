@@ -16,7 +16,7 @@ class ExpiryController extends Controller
     public function index()
     {
         $today = Carbon::today();
-        $warningDate = Carbon::today()->addDays(7); // Batas H-7
+        $warningDate = Carbon::today()->addDays(14); // Batas H-14
 
         // Mengambil semua item beserta batch-nya
         $items = Item::with('batchExpiries')->get()->map(function ($item) use ($today, $warningDate) {
@@ -79,7 +79,7 @@ class ExpiryController extends Controller
 
         $today = Carbon::today();
         $expiryDate = Carbon::parse($batch->expiry_date)->startOfDay();
-        $warningLimit = $today->copy()->addDays(7); // Batas H-7
+        $warningLimit = $today->copy()->addDays(14); // Batas H-14
 
         // Cek apakah tanggal yang diinput mepet atau sudah lewat
         if ($expiryDate->lessThanOrEqualTo($warningLimit)) {
@@ -122,61 +122,6 @@ class ExpiryController extends Controller
     }
 
     /**
-     * Memperbarui tanggal kedaluwarsa batch (AJAX / Web)
-     */
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'expiry_date' => 'required|date',
-        ]);
-
-        // 1. Cari data batch yang akan diedit
-        $batch = BatchExpiry::findOrFail($id);
-        $batch->update([
-            'expiry_date' => $request->expiry_date,
-        ]);
-
-        $batch->load('item');
-        $item = $batch->item;
-
-        // 2. --- 🚀 CEK KEDALUWARSA REAL-TIME SETELAH EDIT ---
-        $today = Carbon::today();
-        $expiryDate = Carbon::parse($batch->expiry_date)->startOfDay();
-        $warningLimit = $today->copy()->addDays(7);
-
-        if ($expiryDate->lessThanOrEqualTo($warningLimit)) {
-            $status = $expiryDate->lessThanOrEqualTo($today) ? 'expired' : 'warning';
-
-            if ($status === 'warning') {
-                $sisaHari = $today->diffInDays($expiryDate);
-                $pesan = "Tanggal diperbarui: Memasuki masa kritis (Sisa {$sisaHari} hari)!";
-            } else {
-                $pesan = "Tanggal diperbarui: Barang ini sudah kedaluwarsa!";
-            }
-
-            // Tembakkan Alarm Global ke Reverb secara otomatis!
-            broadcast(new BatchExpiryAlert(
-                $batch->batch_code ?? '-',
-                $item->nama_barang,
-                $status,
-                $pesan
-            ));
-        }
-
-        // 3. Beri respons sukses dalam bentuk JSON (Untuk AJAX)
-        if ($request->wantsJson() || $request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Tanggal kedaluwarsa ' . $item->nama_barang . ' berhasil diperbarui.',
-                'data' => [
-                    'expiry_date' => Carbon::parse($batch->expiry_date)->format('d/m/Y')
-                ]
-            ]);
-        }
-
-        return redirect()->back()->with('success', 'Tanggal kedaluwarsa berhasil diperbarui.');
-    }
-    /**
      * API: Mengambil daftar batch per item untuk fitur "Expand" pada tabel
      */
     public function getBatches($id)
@@ -186,7 +131,7 @@ class ExpiryController extends Controller
         }])->findOrFail($id);
 
         $today = Carbon::today();
-        $warningDate = Carbon::today()->addDays(7);
+        $warningDate = Carbon::today()->addDays(14);
 
         // Memformat data menjadi JSON untuk JavaScript
         $batches = $item->batchExpiries->map(function ($batch) use ($today, $warningDate) {

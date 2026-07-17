@@ -21,7 +21,7 @@ class ScannerController extends Controller
         if (!$item) {
             return response()->json([
                 'success' => false,
-                'message' => 'Barang tersebut belum terdaftar!'
+                'message' => 'Barang tersebut belum terdaftar'
             ], 404);
         }
 
@@ -39,7 +39,8 @@ class ScannerController extends Controller
         // 1. Validasi input JSON dari Raspi
         $request->validate([
             'barcode' => 'required|string',
-            'expiry_date' => 'required|date_format:d/m/Y'
+            'expiry_date' => 'required|date_format:d/m/Y',
+            'mode' => 'nullable|string'
         ]);
 
         // 2. Cek apakah barcode terdaftar di database
@@ -49,7 +50,7 @@ class ScannerController extends Controller
             // Mengembalikan pesan error ke Raspi jika barang belum ada [cite: 600]
             return response()->json([
                 'success' => false,
-                'message' => 'Barang tersebut belum terdaftar!'
+                'message' => 'Barang tersebut belum terdaftar'
             ], 404);
         }
 

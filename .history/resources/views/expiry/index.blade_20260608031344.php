@@ -39,7 +39,7 @@
             <span class="stat-card-value" id="warning-batch-count">{{ $warningBatch ?? 0 }}</span>
             <span class="stat-card-label">Mendekati Kedaluwarsa</span>
         </div>
-        <div class="stat-card-trend" style="color:#F59E0B;">H-7</div>
+        <div class="stat-card-trend" style="color:#F59E0B;">H-14</div>
     </div>
 
     <div class="stat-card">
@@ -343,8 +343,8 @@
                         <input type="text" id="edit_barcode" name="barcode" class="form-input">
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
-                        <label class="form-label" for="edit_katalog_nama_barang">NAMA BARANG</label>
-                        <input type="text" id="edit_katalog_nama_barang" name="nama_barang" class="form-input" required>
+                        <label class="form-label" for="edit_nama_barang">NAMA BARANG</label>
+                        <input type="text" id="edit_nama_barang" name="nama_barang" class="form-input" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="edit_satuan">SATUAN</label>
@@ -545,7 +545,7 @@ function updateRealtimeStats(barcode, expiryDateStr) {
     today.setHours(0, 0, 0, 0); // Reset jam agar hitungan harinya akurat
 
     const warningDate = new Date(today);
-    warningDate.setDate(warningDate.getDate() + 6); // Batas H-7
+    warningDate.setDate(warningDate.getDate() + 14); // Batas H-14
 
     let status = 'safe';
     if (expDate < today) {
@@ -911,14 +911,14 @@ async function openExpiryDetailModal(itemId) {
 
     // Tampilkan animasi loading di tabel modal
     const tbody = document.getElementById('modal-batch-list');
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--grey-500);"><div class="spinner" style="width:24px; height:24px; margin:0 auto 12px; border:2px solid var(--grey-200); border-top-color:var(--primary-500); border-radius:50%; animation:spin 1s linear infinite;"></div>Memuat data batch...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:40px; color:var(--grey-500);"><div class="spinner" style="width:24px; height:24px; margin:0 auto 12px; border:2px solid var(--grey-200); border-top-color:var(--primary-500); border-radius:50%; animation:spin 1s linear infinite;"></div>Memuat data batch...</td></tr>`;
 
     try {
         const r = await fetch(`{{ url('/api/items') }}/${itemId}/batches`);
         const d = await r.json();
 
         if (!d.batches || d.batches.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:32px; color:var(--grey-500); font-style:italic;">Tidak ada data batch terdaftar.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:32px; color:var(--grey-500); font-style:italic;">Tidak ada data batch terdaftar.</td></tr>`;
             return;
         }
 
@@ -943,12 +943,6 @@ async function openExpiryDetailModal(itemId) {
                                 title="Edit Tanggal">
                             ✏️
                         </button>
-                        {{-- TOMBOL DELETE BATCH BARU ── --}}
-                        <button class="btn-row-icon btn-row-icon--detail" style="width:24px; height:24px; font-size:11px; color:var(--red-500);"
-                                onclick="deleteBatch(${b.id}, ${itemId})"
-                                title="Hapus Batch">
-                            🗑️
-                        </button>
                     </td>
                 </tr>
             `;
@@ -956,7 +950,7 @@ async function openExpiryDetailModal(itemId) {
         tbody.innerHTML = html;
 
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:32px; color:var(--red-500);">Terjadi kesalahan saat memuat data.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:32px; color:var(--red-500);">Terjadi kesalahan saat memuat data.</td></tr>`;
     }
 }
 
@@ -1136,7 +1130,7 @@ function openEditProductModal(itemId) {
     // Isi form dengan data dari atribut baris tabel
     document.getElementById('edit_kode_barang').value = row.getAttribute('data-kode');
     document.getElementById('edit_barcode').value = row.getAttribute('data-barcode');
-    document.getElementById('edit_katalog_nama_barang').value = row.getAttribute('data-name');
+    document.getElementById('edit_nama_barang').value = row.getAttribute('data-name');
     document.getElementById('edit_satuan').value = row.getAttribute('data-satuan');
     document.getElementById('edit_deskripsi').value = row.getAttribute('data-deskripsi') || '';
 
@@ -1177,7 +1171,6 @@ function closeEditProductModal(e) {
 .btn-row-icon--detail:hover { background:var(--primary-50);border-color:var(--primary-300); }
 .btn-row-icon--edit { color:var(--amber-500); }
 .btn-row-icon--edit:hover { background:var(--amber-50);border-color:var(--amber-300); }
-.btn-row-icon--detail:hover[title="Hapus Batch"] {background: #fef2f2; border-color: #fca5a5;}
 
 /* ── Detail Modal Expiry ── */
 .detail-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9990;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .25s; }

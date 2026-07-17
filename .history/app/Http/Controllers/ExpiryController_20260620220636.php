@@ -16,7 +16,7 @@ class ExpiryController extends Controller
     public function index()
     {
         $today = Carbon::today();
-        $warningDate = Carbon::today()->addDays(7); // Batas H-7
+        $warningDate = Carbon::today()->addDays(14); // Batas H-14
 
         // Mengambil semua item beserta batch-nya
         $items = Item::with('batchExpiries')->get()->map(function ($item) use ($today, $warningDate) {
@@ -79,7 +79,7 @@ class ExpiryController extends Controller
 
         $today = Carbon::today();
         $expiryDate = Carbon::parse($batch->expiry_date)->startOfDay();
-        $warningLimit = $today->copy()->addDays(7); // Batas H-7
+        $warningLimit = $today->copy()->addDays(14); // Batas H-14
 
         // Cek apakah tanggal yang diinput mepet atau sudah lewat
         if ($expiryDate->lessThanOrEqualTo($warningLimit)) {
@@ -142,7 +142,7 @@ class ExpiryController extends Controller
         // 2. --- 🚀 CEK KEDALUWARSA REAL-TIME SETELAH EDIT ---
         $today = Carbon::today();
         $expiryDate = Carbon::parse($batch->expiry_date)->startOfDay();
-        $warningLimit = $today->copy()->addDays(7);
+        $warningLimit = $today->copy()->addDays(14);
 
         if ($expiryDate->lessThanOrEqualTo($warningLimit)) {
             $status = $expiryDate->lessThanOrEqualTo($today) ? 'expired' : 'warning';
@@ -186,7 +186,7 @@ class ExpiryController extends Controller
         }])->findOrFail($id);
 
         $today = Carbon::today();
-        $warningDate = Carbon::today()->addDays(7);
+        $warningDate = Carbon::today()->addDays(14);
 
         // Memformat data menjadi JSON untuk JavaScript
         $batches = $item->batchExpiries->map(function ($batch) use ($today, $warningDate) {

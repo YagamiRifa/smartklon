@@ -21,7 +21,7 @@ class ScannerController extends Controller
         if (!$item) {
             return response()->json([
                 'success' => false,
-                'message' => 'Barang tersebut belum terdaftar!'
+                'message' => 'Barang tersebut belum terdaftar'
             ], 404);
         }
 
@@ -39,9 +39,29 @@ class ScannerController extends Controller
         // 1. Validasi input JSON dari Raspi
         $request->validate([
             'barcode' => 'required|string',
-            'expiry_date' => 'required|date_format:d/m/Y'
+            'expiry_date' => 'required|date_format:d/m/Y',
+            'mode' => 'nullable|string'
         ]);
 
+        $mode = $request->input('mode', 'SMART');
+
+        if ($mode === 'KASIR') {
+
+            // Siarkan ID Barcode langsung ke Web Kasir via WebSocket (Pusher / Laravel Echo)
+            // Tanpa perlu cek database, biarkan Frontend Web Kasir yang mencari produknya
+            // broadcast(new KasirBarcodeScanned($request->barcode));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Barcode berhasil diteruskan ke sistem kasir'
+            ], 200);
+        }
+
+        // =========================================================
+        // JALUR 🧠 MODE SMART SCANNER (BAWAAN ORIGINAL KAMU)
+        // =========================================================
+
+        // Di mode Smart Scanner, pengecekan ke database tetap berjalan normal seperti semula
         // 2. Cek apakah barcode terdaftar di database
         $item = Item::where('barcode', $request->barcode)->first();
 
@@ -49,7 +69,7 @@ class ScannerController extends Controller
             // Mengembalikan pesan error ke Raspi jika barang belum ada [cite: 600]
             return response()->json([
                 'success' => false,
-                'message' => 'Barang tersebut belum terdaftar!'
+                'message' => 'Barang tersebut belum terdaftar'
             ], 404);
         }
 

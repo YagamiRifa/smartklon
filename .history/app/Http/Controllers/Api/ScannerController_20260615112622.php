@@ -21,7 +21,7 @@ class ScannerController extends Controller
         if (!$item) {
             return response()->json([
                 'success' => false,
-                'message' => 'Barang tersebut belum terdaftar!'
+                'message' => 'Barang tersebut belum terdaftar'
             ], 404);
         }
 
@@ -49,7 +49,7 @@ class ScannerController extends Controller
             // Mengembalikan pesan error ke Raspi jika barang belum ada [cite: 600]
             return response()->json([
                 'success' => false,
-                'message' => 'Barang tersebut belum terdaftar!'
+                'message' => 'Barang tersebut belum terdaftar'
             ], 404);
         }
 

@@ -69,7 +69,7 @@ class CheckDailyExpiry extends Command
             // Simpan riwayat notifikasi ke Database untuk semua admin
             Notification::send($admins, new ExpiryDatabaseNotification(
                 $batch->batch_code ?? '-',
-                $batch->item->nama_barang ?? 'Produk Tidak Diketahui',
+                $batch->item->nama_barang, ?? 'Produk Tidak Diketahui',
                 $status,
                 $pesan
             ));

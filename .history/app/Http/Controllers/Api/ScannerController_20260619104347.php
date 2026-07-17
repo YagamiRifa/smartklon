@@ -21,7 +21,7 @@ class ScannerController extends Controller
         if (!$item) {
             return response()->json([
                 'success' => false,
-                'message' => 'Barang tersebut belum terdaftar!'
+                'message' => 'Barang tersebut belum terdaftar'
             ], 404);
         }
 
@@ -49,7 +49,7 @@ class ScannerController extends Controller
             // Mengembalikan pesan error ke Raspi jika barang belum ada [cite: 600]
             return response()->json([
                 'success' => false,
-                'message' => 'Barang tersebut belum terdaftar!'
+                'message' => 'Barang tersebut belum terdaftar'
             ], 404);
         }
 
@@ -90,5 +90,36 @@ class ScannerController extends Controller
                 'batch_code' => $batch->batch_code
             ]
         ], 201);
+    }
+
+    public function scanOnly(Request $request)
+    {
+        // 1. Validasi input JSON dari Raspi (Hanya butuh barcode)
+        $request->validate([
+            'barcode' => 'required|string',
+        ]);
+
+        // 2. Cek apakah barcode terdaftar di database
+        $item = Item::where('barcode', $request->barcode)->first();
+
+        if (!$item) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Barang tersebut belum terdaftar'
+            ], 404);
+        }
+
+        // 3. Menyiarkan data ke frontend secara real-time (Expiry date diisi "-")
+        broadcast(new BatchScanned($item->barcode, $item->nama_barang, '-'));
+
+        // 4. Mengembalikan sinyal sukses ke Raspi (Tanpa simpan database)
+        return response()->json([
+            'success' => true,
+            'message' => 'Barcode berhasil diverifikasi (Mode Keyboard)',
+            'data' => [
+                'barcode' => $item->barcode,
+                'nama_barang' => $item->nama_barang
+            ]
+        ], 200);
     }
 }

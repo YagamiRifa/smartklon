@@ -36,7 +36,7 @@ class DashboardController extends Controller
             'tags as total_tags_count',
         ])->orderByDesc('in_stock_count')->take(5)->get();
 
-        // Ambil data batch yang sudah kedaluwarsa ATAU mendekati kedaluwarsa (H-7)
+        // Ambil data batch yang sudah kedaluwarsa ATAU mendekati kedaluwarsa (H-14)
         $criticalBatches = BatchExpiry::with('item')
             ->where('expiry_date', '<=', $warningLimit)
             ->orderBy('expiry_date', 'asc') // Yang paling kritis ditaruh di paling atas

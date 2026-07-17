@@ -96,7 +96,7 @@ class ExpiryController extends Controller
             // Tembakkan Notifikasi Global secara Real-time!
             broadcast(new BatchExpiryAlert(
                 $batch->batch_code ?? '-', // Jika batch_code otomatis di-generate DB
-                $item->nama_barang,
+                $batch->item->nama_barang,
                 $status,
                 $pesan
             ));

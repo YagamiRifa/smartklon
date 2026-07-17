@@ -39,7 +39,7 @@
             <span class="stat-card-value" id="warning-batch-count">{{ $warningBatch ?? 0 }}</span>
             <span class="stat-card-label">Mendekati Kedaluwarsa</span>
         </div>
-        <div class="stat-card-trend" style="color:#F59E0B;">H-7</div>
+        <div class="stat-card-trend" style="color:#F59E0B;">H-14</div>
     </div>
 
     <div class="stat-card">
@@ -266,7 +266,7 @@
                          </tr>
                      </thead>
                      <tbody id="modal-batch-list">
-                         <tr><td colspan="4" style="text-align:center; padding:32px;">Memuat data...</td></tr>
+                         <tr><td colspan="3" style="text-align:center; padding:32px;">Memuat data...</td></tr>
                      </tbody>
                  </table>
              </div>
@@ -343,8 +343,8 @@
                         <input type="text" id="edit_barcode" name="barcode" class="form-input">
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
-                        <label class="form-label" for="edit_katalog_nama_barang">NAMA BARANG</label>
-                        <input type="text" id="edit_katalog_nama_barang" name="nama_barang" class="form-input" required>
+                        <label class="form-label" for="edit_nama_barang">NAMA BARANG</label>
+                        <input type="text" id="edit_nama_barang" name="nama_barang" class="form-input" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="edit_satuan">SATUAN</label>
@@ -545,7 +545,7 @@ function updateRealtimeStats(barcode, expiryDateStr) {
     today.setHours(0, 0, 0, 0); // Reset jam agar hitungan harinya akurat
 
     const warningDate = new Date(today);
-    warningDate.setDate(warningDate.getDate() + 6); // Batas H-7
+    warningDate.setDate(warningDate.getDate() + 14); // Batas H-14
 
     let status = 'safe';
     if (expDate < today) {
@@ -911,14 +911,14 @@ async function openExpiryDetailModal(itemId) {
 
     // Tampilkan animasi loading di tabel modal
     const tbody = document.getElementById('modal-batch-list');
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--grey-500);"><div class="spinner" style="width:24px; height:24px; margin:0 auto 12px; border:2px solid var(--grey-200); border-top-color:var(--primary-500); border-radius:50%; animation:spin 1s linear infinite;"></div>Memuat data batch...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:40px; color:var(--grey-500);"><div class="spinner" style="width:24px; height:24px; margin:0 auto 12px; border:2px solid var(--grey-200); border-top-color:var(--primary-500); border-radius:50%; animation:spin 1s linear infinite;"></div>Memuat data batch...</td></tr>`;
 
     try {
         const r = await fetch(`{{ url('/api/items') }}/${itemId}/batches`);
         const d = await r.json();
 
         if (!d.batches || d.batches.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:32px; color:var(--grey-500); font-style:italic;">Tidak ada data batch terdaftar.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:32px; color:var(--grey-500); font-style:italic;">Tidak ada data batch terdaftar.</td></tr>`;
             return;
         }
 
@@ -943,12 +943,6 @@ async function openExpiryDetailModal(itemId) {
                                 title="Edit Tanggal">
                             ✏️
                         </button>
-                        {{-- TOMBOL DELETE BATCH BARU ── --}}
-                        <button class="btn-row-icon btn-row-icon--detail" style="width:24px; height:24px; font-size:11px; color:var(--red-500);"
-                                onclick="deleteBatch(${b.id}, ${itemId})"
-                                title="Hapus Batch">
-                            🗑️
-                        </button>
                     </td>
                 </tr>
             `;
@@ -956,7 +950,7 @@ async function openExpiryDetailModal(itemId) {
         tbody.innerHTML = html;
 
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:32px; color:var(--red-500);">Terjadi kesalahan saat memuat data.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:32px; color:var(--red-500);">Terjadi kesalahan saat memuat data.</td></tr>`;
     }
 }
 
@@ -964,72 +958,6 @@ function closeExpiryDetailModal(e) {
     if (e && e.target !== document.getElementById('expiry-detail-modal-overlay')) return;
     document.getElementById('expiry-detail-modal-overlay').classList.remove('detail-modal-overlay--visible');
     setTimeout(() => { document.getElementById('expiry-detail-modal-overlay').style.display = 'none'; }, 250);
-}
-
-// ==============================================================
-// MODAL EDIT TANGGAL KEDALUWARSA (BATCH)
-// ==============================================================
-
-function openEditModal(id, currentDate, itemName) {
-    document.getElementById('edit_batch_id').value = id;
-    document.getElementById('edit_nama_barang').value = itemName;
-
-    // Perbaikan Penting: API kamu memberikan format 'dd/mm/yyyy'
-    // Sedangkan input type="date" HANYA bisa membaca format 'yyyy-mm-dd'
-    if(currentDate && currentDate.includes('/')) {
-        const parts = currentDate.split('/'); // pecah berdasarkan garis miring
-        // parts[0] = tanggal, parts[1] = bulan, parts[2] = tahun
-        document.getElementById('edit_expiry_date').value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-    } else {
-        document.getElementById('edit_expiry_date').value = currentDate;
-    }
-
-    document.getElementById('editExpiryModal').style.display = 'flex';
-}
-
-function closeEditModal() {
-    document.getElementById('editExpiryModal').style.display = 'none';
-}
-
-async function submitEditForm(event) {
-    event.preventDefault(); // Mencegah halaman me-reload secara default
-
-    const id = document.getElementById('edit_batch_id').value;
-    const newDate = document.getElementById('edit_expiry_date').value;
-
-    try {
-        const response = await fetch(`/expiry/${id}`, {
-            method: 'POST', // Gunakan POST yang disamarkan jadi PUT (Method Spoofing Laravel)
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                _method: 'PUT',
-                expiry_date: newDate
-            })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            closeEditModal();
-
-            // Opsional: Jika kamu punya fungsi notifikasi Toast global, bisa dipanggil di sini
-            if (typeof showGlobalToast === 'function') {
-                showGlobalToast('Sukses!', 'Tanggal kedaluwarsa berhasil diubah.', 'success');
-            }
-
-            // Muat ulang halaman agar perubahan angka di kartu statistik dan tabel langsung sinkron
-            window.location.reload();
-        } else {
-            alert('Gagal mengubah data: ' + (result.message || 'Periksa input Anda.'));
-        }
-    } catch (error) {
-        console.error('Error saat menyimpan perubahan:', error);
-        alert('Terjadi kesalahan jaringan atau server.');
-    }
 }
 
 // ==============================================================
@@ -1136,7 +1064,7 @@ function openEditProductModal(itemId) {
     // Isi form dengan data dari atribut baris tabel
     document.getElementById('edit_kode_barang').value = row.getAttribute('data-kode');
     document.getElementById('edit_barcode').value = row.getAttribute('data-barcode');
-    document.getElementById('edit_katalog_nama_barang').value = row.getAttribute('data-name');
+    document.getElementById('edit_nama_barang').value = row.getAttribute('data-name');
     document.getElementById('edit_satuan').value = row.getAttribute('data-satuan');
     document.getElementById('edit_deskripsi').value = row.getAttribute('data-deskripsi') || '';
 
@@ -1177,7 +1105,6 @@ function closeEditProductModal(e) {
 .btn-row-icon--detail:hover { background:var(--primary-50);border-color:var(--primary-300); }
 .btn-row-icon--edit { color:var(--amber-500); }
 .btn-row-icon--edit:hover { background:var(--amber-50);border-color:var(--amber-300); }
-.btn-row-icon--detail:hover[title="Hapus Batch"] {background: #fef2f2; border-color: #fca5a5;}
 
 /* ── Detail Modal Expiry ── */
 .detail-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9990;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .25s; }
