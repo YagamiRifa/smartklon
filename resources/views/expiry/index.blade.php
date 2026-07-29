@@ -28,7 +28,7 @@
             <span class="stat-card-value" id="safe-batch-count">{{ $safeBatch ?? 0 }}</span>
             <span class="stat-card-label">Aman</span>
         </div>
-        <div class="stat-card-trend stat-card-trend--up">Exp > 14 Hari</div>
+        <div class="stat-card-trend stat-card-trend--up">Exp > 7 Hari</div>
     </div>
 
     <div class="stat-card">
