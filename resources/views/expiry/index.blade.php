@@ -378,7 +378,7 @@
             {{-- Search --}}
             <div class="search-wrapper">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                <input type="text" class="search-input" id="expiry-search" placeholder="Cari nama atau kode…" oninput="applyFilters()">
+                <input type="text" class="search-input" id="expiry-search" placeholder="Cari nama, kode, atau barcode…" oninput="applyFilters()">
             </div>
 
             {{-- Filter dropdown --}}
@@ -398,7 +398,7 @@
             </select>
         </div>
     </div>
-    <div class="card-body card-body--no-padding">
+    <div style="max-height: 400px; overflow-y: auto; position: relative;">
         <table class="data-table" id="expiry-table">
             <thead>
                 <tr>
@@ -830,13 +830,17 @@ function applyFilters() {
 
     // 1. FILTERING
     rows.forEach(row => {
-        const name    = row.getAttribute('data-name') || '';
-        const kode    = row.getAttribute('data-kode') || '';
+        // Ambil data atribut dan paksa menjadi huruf kecil agar pencarian lebih akurat
+        const name    = (row.getAttribute('data-name') || '').toLowerCase();
+        const kode    = (row.getAttribute('data-kode') || '').toLowerCase();
+        const barcode = (row.getAttribute('data-barcode') || '').toLowerCase(); // Ambil data barcode
+
         const safe    = parseInt(row.getAttribute('data-safe') || 0);
         const warning = parseInt(row.getAttribute('data-warning') || 0);
         const expired = parseInt(row.getAttribute('data-expired') || 0);
 
-        const matchSearch = !q || name.includes(q) || kode.includes(q);
+        // Tambahkan variabel barcode ke dalam kondisi pencarian
+        const matchSearch = !q || name.includes(q) || kode.includes(q) || barcode.includes(q);
 
         let matchFilter = true;
         if (filter === 'has_expired') matchFilter = expired > 0;
